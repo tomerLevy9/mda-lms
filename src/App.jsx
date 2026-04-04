@@ -30,7 +30,7 @@ export default function MDAQuizApp() {
   };
 
   const [screen, setScreen] = useState("home");
-  const [filterSource, setFilterSource] = useState("all");
+  const [filterSources, setFilterSources] = useState(new Set());
   const [filterTopic, setFilterTopic] = useState("all");
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -42,13 +42,13 @@ export default function MDAQuizApp() {
   const [streak, setStreak] = useState(0);
   const [maxStreak, setMaxStreak] = useState(0);
 
-  const filteredTopics = filterSource === "all"
+  const filteredTopics = filterSources.size === 0
     ? TOPICS
-    : [...new Set(QUESTIONS.filter(q => q.source === filterSource).map(q => q.topic))];
+    : [...new Set(QUESTIONS.filter(q => filterSources.has(q.source)).map(q => q.topic))];
 
   const startQuiz = useCallback(() => {
     let pool = QUESTIONS;
-    if (filterSource !== "all") pool = pool.filter(q => q.source === filterSource);
+    if (filterSources.size > 0) pool = pool.filter(q => filterSources.has(q.source));
     if (filterTopic !== "all") pool = pool.filter(q => q.topic === filterTopic);
     if (pool.length === 0) return;
     const shuffled = shuffle(pool);
@@ -62,7 +62,7 @@ export default function MDAQuizApp() {
     setStreak(0);
     setMaxStreak(0);
     setScreen("quiz");
-  }, [filterSource, filterTopic]);
+  }, [filterSources, filterTopic]);
 
   const handleSelect = (idx) => {
     if (answered) return;
@@ -290,6 +290,39 @@ export default function MDAQuizApp() {
         .filter-select option {
           background: #1e2337;
           color: #e8eaf0;
+        }
+
+        .chip-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .chip {
+          padding: 8px 16px;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 20px;
+          color: rgba(255,255,255,0.6);
+          font-family: 'Heebo', sans-serif;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .chip:hover {
+          background: rgba(255,255,255,0.1);
+          border-color: rgba(255,255,255,0.2);
+        }
+
+        .chip-active {
+          background: rgba(220,38,38,0.15);
+          border-color: rgba(220,38,38,0.4);
+          color: #f87171;
+        }
+
+        .chip-active:hover {
+          background: rgba(220,38,38,0.25);
         }
 
         .q-count {
@@ -852,14 +885,24 @@ export default function MDAQuizApp() {
 
               <div className="filter-group">
                 <label className="filter-label">סנן לפי שיעור</label>
-                <select
-                  className="filter-select"
-                  value={filterSource}
-                  onChange={e => { setFilterSource(e.target.value); setFilterTopic("all"); }}
-                >
-                  <option value="all">כל השיעורים</option>
-                  {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <div className="chip-list">
+                  {SOURCES.map(s => (
+                    <button
+                      key={s}
+                      className={`chip ${filterSources.has(s) ? "chip-active" : ""}`}
+                      onClick={() => {
+                        setFilterSources(prev => {
+                          const next = new Set(prev);
+                          if (next.has(s)) next.delete(s); else next.add(s);
+                          return next;
+                        });
+                        setFilterTopic("all");
+                      }}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="filter-group">
@@ -877,7 +920,7 @@ export default function MDAQuizApp() {
               <div className="q-count">
                 <strong>{
                   QUESTIONS.filter(q =>
-                    (filterSource === "all" || q.source === filterSource) &&
+                    (filterSources.size === 0 || filterSources.has(q.source)) &&
                     (filterTopic === "all" || q.topic === filterTopic)
                   ).length
                 }</strong> שאלות זמינות
@@ -887,7 +930,7 @@ export default function MDAQuizApp() {
                 className="start-btn"
                 onClick={startQuiz}
                 disabled={QUESTIONS.filter(q =>
-                  (filterSource === "all" || q.source === filterSource) &&
+                  (filterSources.size === 0 || filterSources.has(q.source)) &&
                   (filterTopic === "all" || q.topic === filterTopic)
                 ).length === 0}
               >
