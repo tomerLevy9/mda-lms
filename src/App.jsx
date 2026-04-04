@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { GoogleLogin } from "@react-oauth/google";
 import QUESTIONS from "./questions.js";
 
 
@@ -15,18 +16,17 @@ function shuffle(arr) {
 }
 
 export default function MDAQuizApp() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loginUser, setLoginUser] = useState("");
-  const [loginPass, setLoginPass] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem("mda_logged_in") === "true");
   const [loginError, setLoginError] = useState("");
 
-  const handleLogin = () => {
-    if (loginUser === import.meta.env.VITE_LOGIN_USER && loginPass === import.meta.env.VITE_LOGIN_PASS) {
-      setIsLoggedIn(true);
-      setLoginError("");
-    } else {
-      setLoginError("שם משתמש או סיסמה שגויים");
-    }
+  const handleGoogleSuccess = () => {
+    sessionStorage.setItem("mda_logged_in", "true");
+    setIsLoggedIn(true);
+    setLoginError("");
+  };
+
+  const handleGoogleError = () => {
+    setLoginError("ההתחברות נכשלה, נסה שוב");
   };
 
   const [screen, setScreen] = useState("home");
@@ -790,45 +790,6 @@ export default function MDAQuizApp() {
           color: #8b92a8;
           margin-bottom: 28px;
         }
-        .login-input {
-          width: 100%;
-          padding: 14px 16px;
-          border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.12);
-          background: rgba(255,255,255,0.05);
-          color: #fff;
-          font-size: 15px;
-          font-family: 'Heebo', sans-serif;
-          margin-bottom: 12px;
-          outline: none;
-          direction: ltr;
-          text-align: right;
-        }
-        .login-input:focus {
-          border-color: #dc2626;
-          box-shadow: 0 0 0 3px rgba(220,38,38,0.15);
-        }
-        .login-input::placeholder {
-          color: #555b6e;
-        }
-        .login-btn {
-          width: 100%;
-          padding: 14px;
-          border-radius: 10px;
-          border: none;
-          background: linear-gradient(135deg, #dc2626, #991b1b);
-          color: #fff;
-          font-size: 16px;
-          font-weight: 700;
-          font-family: 'Heebo', sans-serif;
-          cursor: pointer;
-          margin-top: 8px;
-          transition: transform 0.15s, box-shadow 0.15s;
-        }
-        .login-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 20px rgba(220,38,38,0.4);
-        }
         .login-error {
           color: #f87171;
           font-size: 14px;
@@ -842,23 +803,13 @@ export default function MDAQuizApp() {
             <div className="login-logo">✡</div>
             <div className="login-title">מד״א — בנק שאלות</div>
             <div className="login-subtitle">בית הספר לפראמדיקים</div>
-            <input
-              className="login-input"
-              type="text"
-              placeholder="שם משתמש"
-              value={loginUser}
-              onChange={e => { setLoginUser(e.target.value); setLoginError(""); }}
-              onKeyDown={e => e.key === "Enter" && handleLogin()}
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              theme="filled_black"
+              locale="he"
+              shape="pill"
             />
-            <input
-              className="login-input"
-              type="password"
-              placeholder="סיסמה"
-              value={loginPass}
-              onChange={e => { setLoginPass(e.target.value); setLoginError(""); }}
-              onKeyDown={e => e.key === "Enter" && handleLogin()}
-            />
-            <button className="login-btn" onClick={handleLogin}>כניסה</button>
             {loginError && <div className="login-error">{loginError}</div>}
           </div>
         </div>
