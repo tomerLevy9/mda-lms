@@ -31,7 +31,7 @@ export default function MDAQuizApp() {
 
   const [screen, setScreen] = useState("home");
   const [filterSources, setFilterSources] = useState(new Set());
-  const [filterTopic, setFilterTopic] = useState("all");
+  const [filterTopics, setFilterTopics] = useState(new Set());
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -49,7 +49,7 @@ export default function MDAQuizApp() {
   const startQuiz = useCallback(() => {
     let pool = QUESTIONS;
     if (filterSources.size > 0) pool = pool.filter(q => filterSources.has(q.source));
-    if (filterTopic !== "all") pool = pool.filter(q => q.topic === filterTopic);
+    if (filterTopics.size > 0) pool = pool.filter(q => filterTopics.has(q.topic));
     if (pool.length === 0) return;
     const shuffled = shuffle(pool);
     setQuizQuestions(shuffled);
@@ -62,7 +62,7 @@ export default function MDAQuizApp() {
     setStreak(0);
     setMaxStreak(0);
     setScreen("quiz");
-  }, [filterSources, filterTopic]);
+  }, [filterSources, filterTopics]);
 
   const handleSelect = (idx) => {
     if (answered) return;
@@ -896,7 +896,7 @@ export default function MDAQuizApp() {
                           if (next.has(s)) next.delete(s); else next.add(s);
                           return next;
                         });
-                        setFilterTopic("all");
+                        setFilterTopics(new Set());
                       }}
                     >
                       {s}
@@ -907,21 +907,30 @@ export default function MDAQuizApp() {
 
               <div className="filter-group">
                 <label className="filter-label">סנן לפי נושא</label>
-                <select
-                  className="filter-select"
-                  value={filterTopic}
-                  onChange={e => setFilterTopic(e.target.value)}
-                >
-                  <option value="all">כל הנושאים</option>
-                  {filteredTopics.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <div className="chip-list">
+                  {filteredTopics.map(t => (
+                    <button
+                      key={t}
+                      className={`chip ${filterTopics.has(t) ? "chip-active" : ""}`}
+                      onClick={() => {
+                        setFilterTopics(prev => {
+                          const next = new Set(prev);
+                          if (next.has(t)) next.delete(t); else next.add(t);
+                          return next;
+                        });
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="q-count">
                 <strong>{
                   QUESTIONS.filter(q =>
                     (filterSources.size === 0 || filterSources.has(q.source)) &&
-                    (filterTopic === "all" || q.topic === filterTopic)
+                    (filterTopics.size === 0 || filterTopics.has(q.topic))
                   ).length
                 }</strong> שאלות זמינות
               </div>
@@ -931,7 +940,7 @@ export default function MDAQuizApp() {
                 onClick={startQuiz}
                 disabled={QUESTIONS.filter(q =>
                   (filterSources.size === 0 || filterSources.has(q.source)) &&
-                  (filterTopic === "all" || q.topic === filterTopic)
+                  (filterTopics.size === 0 || filterTopics.has(q.topic))
                 ).length === 0}
               >
                 התחל תרגול
