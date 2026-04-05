@@ -5,6 +5,11 @@ import QUESTIONS from "./questions.js";
 
 const SOURCES = [...new Set(QUESTIONS.map(q => q.source))];
 
+// קבוצות של שיעורים — קיצורי דרך לבחירה מהירה
+const GROUPS = {
+  "מבואות": SOURCES,
+};
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -39,6 +44,20 @@ export default function MDAQuizApp() {
   const [showExplanation, setShowExplanation] = useState(false);
   const [streak, setStreak] = useState(0);
   const [maxStreak, setMaxStreak] = useState(0);
+
+  const toggleGroup = (groupName) => {
+    const groupSources = GROUPS[groupName] || [];
+    setFilterSources(prev => {
+      const allSelected = groupSources.every(s => prev.has(s));
+      const next = new Set(prev);
+      if (allSelected) {
+        groupSources.forEach(s => next.delete(s));
+      } else {
+        groupSources.forEach(s => next.add(s));
+      }
+      return next;
+    });
+  };
 
   const startQuiz = useCallback(() => {
     let pool = QUESTIONS;
@@ -826,6 +845,25 @@ export default function MDAQuizApp() {
             <div className="home-card">
               <div className="home-title">תרגול למבחן</div>
               <div className="home-subtitle">כימיה וביולוגיה — קורס פראמדיקים</div>
+
+              <div className="filter-group">
+                <label className="filter-label">קיצורי דרך</label>
+                <div className="chip-list">
+                  {Object.keys(GROUPS).map(g => {
+                    const groupSources = GROUPS[g];
+                    const allSelected = groupSources.length > 0 && groupSources.every(s => filterSources.has(s));
+                    return (
+                      <button
+                        key={g}
+                        className={`chip ${allSelected ? "chip-active" : ""}`}
+                        onClick={() => toggleGroup(g)}
+                      >
+                        כל {g}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
               <div className="filter-group">
                 <label className="filter-label">סנן לפי שיעור</label>
