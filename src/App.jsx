@@ -19,6 +19,51 @@ function shuffle(arr) {
   return a;
 }
 
+// בוחר שאלות למבחן לדוגמא — התפלגות שווה ככל האפשר בין השיעורים שנבחרו
+function pickSampleExam(pool, totalTarget = 30) {
+  const bySource = {};
+  for (const q of pool) {
+    if (!bySource[q.source]) bySource[q.source] = [];
+    bySource[q.source].push(q);
+  }
+  const sources = Object.keys(bySource);
+  if (sources.length === 0) return [];
+  if (pool.length <= totalTarget) return shuffle(pool);
+
+  const n = sources.length;
+  const base = Math.floor(totalTarget / n);
+  const extras = totalTarget % n;
+  const shuffledSources = shuffle(sources);
+
+  const result = [];
+  const remaining = {};
+  let deficit = 0;
+
+  shuffledSources.forEach((src, i) => {
+    const want = base + (i < extras ? 1 : 0);
+    const questions = shuffle(bySource[src]);
+    const take = Math.min(want, questions.length);
+    result.push(...questions.slice(0, take));
+    remaining[src] = questions.slice(take);
+    if (take < want) deficit += want - take;
+  });
+
+  while (deficit > 0) {
+    let added = false;
+    for (const src of shuffledSources) {
+      if (deficit === 0) break;
+      if (remaining[src].length > 0) {
+        result.push(remaining[src].shift());
+        deficit--;
+        added = true;
+      }
+    }
+    if (!added) break;
+  }
+
+  return shuffle(result);
+}
+
 export default function MDAQuizApp() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem("mda_logged_in") === "true");
   const [loginError, setLoginError] = useState("");
@@ -59,12 +104,9 @@ export default function MDAQuizApp() {
     });
   };
 
-  const startQuiz = useCallback(() => {
-    let pool = QUESTIONS;
-    if (filterSources.size > 0) pool = pool.filter(q => filterSources.has(q.source));
-    if (pool.length === 0) return;
-    const shuffled = shuffle(pool);
-    setQuizQuestions(shuffled);
+  const beginQuiz = (questions) => {
+    if (questions.length === 0) return;
+    setQuizQuestions(questions);
     setCurrentIdx(0);
     setSelected(null);
     setAnswered(false);
@@ -74,7 +116,21 @@ export default function MDAQuizApp() {
     setStreak(0);
     setMaxStreak(0);
     setScreen("quiz");
+  };
+
+  const getFilteredPool = useCallback(() => {
+    let pool = QUESTIONS;
+    if (filterSources.size > 0) pool = pool.filter(q => filterSources.has(q.source));
+    return pool;
   }, [filterSources]);
+
+  const startQuiz = useCallback(() => {
+    beginQuiz(shuffle(getFilteredPool()));
+  }, [getFilteredPool]);
+
+  const startSampleExam = useCallback(() => {
+    beginQuiz(pickSampleExam(getFilteredPool(), 30));
+  }, [getFilteredPool]);
 
   const handleSelect = (idx) => {
     if (answered) return;
@@ -379,6 +435,19 @@ export default function MDAQuizApp() {
           opacity: 0.4;
           cursor: not-allowed;
           transform: none;
+        }
+
+        .start-btn-secondary {
+          margin-top: 12px;
+          background: transparent;
+          border: 2px solid #dc2626;
+          box-shadow: none;
+          color: #fca5a5;
+        }
+
+        .start-btn-secondary:hover {
+          background: rgba(220,38,38,0.1);
+          box-shadow: 0 4px 20px rgba(220,38,38,0.2);
         }
 
         /* QUIZ */
@@ -902,6 +971,16 @@ export default function MDAQuizApp() {
                 ).length === 0}
               >
                 התחל תרגול
+              </button>
+
+              <button
+                className="start-btn start-btn-secondary"
+                onClick={startSampleExam}
+                disabled={QUESTIONS.filter(q =>
+                  filterSources.size === 0 || filterSources.has(q.source)
+                ).length === 0}
+              >
+                מבחן לדוגמא (30 שאלות)
               </button>
             </div>
           )}
