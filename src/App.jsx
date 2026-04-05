@@ -19,6 +19,16 @@ function shuffle(arr) {
   return a;
 }
 
+// מערבב את סדר התשובות בשאלה ומעדכן את אינדקס התשובה הנכונה
+function shuffleOptions(q) {
+  const order = shuffle([0, 1, 2, 3]);
+  return {
+    ...q,
+    options: order.map(i => q.options[i]),
+    correct: order.indexOf(q.correct),
+  };
+}
+
 // בוחר שאלות למבחן לדוגמא — התפלגות שווה ככל האפשר בין השיעורים שנבחרו
 function pickSampleExam(pool, totalTarget = 30) {
   const bySource = {};
@@ -106,7 +116,7 @@ export default function MDAQuizApp() {
 
   const beginQuiz = (questions) => {
     if (questions.length === 0) return;
-    setQuizQuestions(questions);
+    setQuizQuestions(questions.map(shuffleOptions));
     setCurrentIdx(0);
     setSelected(null);
     setAnswered(false);
