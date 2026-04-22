@@ -1,13 +1,30 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import QUESTIONS from "./questions.js";
+import posthog from "posthog-js";
+
+posthog.init("phc_kxL4zQeTY4eJZ7AxybUx3JPTng9H6WAvLRWEAZyftofr", {
+  api_host: "https://us.i.posthog.com",
+  person_profiles: "always",
+});
 
 
 const SOURCES = [...new Set(QUESTIONS.map(q => q.source))];
 
+const PHARMACO_SOURCES = [
+  "מבוא לפרמקולוגיה",
+  "אירועי חשיפה ונוהל הזרקות",
+  "פרמקוקינטיקה",
+  "פרמקודינמיקה",
+  "גישה גרמית IO",
+  "גישה ורידית IV",
+  "הזרקות לשריר ותת עור",
+];
+
 // קבוצות של שיעורים — קיצורי דרך לבחירה מהירה
 const GROUPS = {
-  "מבואות": SOURCES,
+  "מבואות": SOURCES.filter(s => !PHARMACO_SOURCES.includes(s)),
+  "פרמקולוגיה": PHARMACO_SOURCES,
 };
 
 function shuffle(arr) {
@@ -75,11 +92,18 @@ function pickSampleExam(pool, totalTarget = 30) {
 }
 
 export default function MDAQuizApp() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem("mda_logged_in") === "true");
+  const [isLoggedIn, setIsLoggedIn] = useState(() => localStorage.getItem("mda_logged_in") === "true");
   const [loginError, setLoginError] = useState("");
 
-  const handleGoogleSuccess = () => {
-    sessionStorage.setItem("mda_logged_in", "true");
+  const handleGoogleSuccess = (credentialResponse) => {
+    localStorage.setItem("mda_logged_in", "true");
+    try {
+      const payload = JSON.parse(atob(credentialResponse.credential.split(".")[1]));
+      localStorage.setItem("mda_user_name", payload.name || "");
+      localStorage.setItem("mda_user_email", payload.email || "");
+      posthog.identify(payload.email, { name: payload.name, email: payload.email });
+      posthog.capture("login");
+    } catch {}
     setIsLoggedIn(true);
     setLoginError("");
   };
@@ -135,18 +159,33 @@ export default function MDAQuizApp() {
   }, [filterSources]);
 
   const startQuiz = useCallback(() => {
-    beginQuiz(shuffle(getFilteredPool()));
-  }, [getFilteredPool]);
+    const pool = getFilteredPool();
+    const topics = [...filterSources];
+    posthog.capture("quiz_started", { mode: "practice", topic_count: topics.length, topics, question_pool: pool.length });
+    beginQuiz(shuffle(pool));
+  }, [getFilteredPool, filterSources]);
 
   const startSampleExam = useCallback(() => {
-    beginQuiz(pickSampleExam(getFilteredPool(), 30));
-  }, [getFilteredPool]);
+    const pool = getFilteredPool();
+    const topics = [...filterSources];
+    posthog.capture("quiz_started", { mode: "sample_exam", topic_count: topics.length, topics, question_pool: pool.length });
+    beginQuiz(pickSampleExam(pool, 30));
+  }, [getFilteredPool, filterSources]);
 
   const handleSelect = (idx) => {
     if (answered) return;
     setSelected(idx);
     setAnswered(true);
-    const isCorrect = idx === quizQuestions[currentIdx].correct;
+    const q = quizQuestions[currentIdx];
+    const isCorrect = idx === q.correct;
+    posthog.capture("question_answered", {
+      question_id: q.id,
+      source: q.source,
+      topic: q.topic,
+      correct: isCorrect,
+      question_number: currentIdx + 1,
+      total_questions: quizQuestions.length,
+    });
     if (isCorrect) {
       setScore(s => s + 1);
       setStreak(s => {
@@ -157,12 +196,19 @@ export default function MDAQuizApp() {
     } else {
       setStreak(0);
     }
-    setAnswers(a => [...a, { qId: quizQuestions[currentIdx].id, selected: idx, correct: quizQuestions[currentIdx].correct, isCorrect }]);
+    setAnswers(a => [...a, { qId: q.id, selected: idx, correct: q.correct, isCorrect }]);
     setShowExplanation(true);
   };
 
   const nextQuestion = () => {
     if (currentIdx + 1 >= quizQuestions.length) {
+      const finalScore = score + (answers.length > 0 && answers[answers.length - 1]?.isCorrect ? 0 : 0); // score is already updated
+      posthog.capture("quiz_finished", {
+        total_questions: quizQuestions.length,
+        score,
+        score_pct: Math.round((score / quizQuestions.length) * 100),
+        topics: [...new Set(quizQuestions.map(q => q.source))],
+      });
       setScreen("results");
     } else {
       setCurrentIdx(i => i + 1);
@@ -857,29 +903,51 @@ export default function MDAQuizApp() {
           pointer-events: none;
         }
         .login-card {
-          background: rgba(30,34,50,0.95);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 20px;
-          padding: 40px 32px;
+          background: linear-gradient(160deg, rgba(30,34,52,0.98) 0%, rgba(20,24,40,0.98) 100%);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 24px;
+          padding: 48px 36px 40px;
           width: 90%;
           max-width: 380px;
           text-align: center;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+          box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(220,38,38,0.15), inset 0 1px 0 rgba(255,255,255,0.07);
+          backdrop-filter: blur(20px);
         }
         .login-logo {
-          font-size: 48px;
-          margin-bottom: 8px;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .login-logo-circle {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background: linear-gradient(145deg, rgba(220,38,38,0.2), rgba(185,28,28,0.1));
+          border: 1.5px solid rgba(220,38,38,0.35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0 32px rgba(220,38,38,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
         }
         .login-title {
-          font-size: 22px;
-          font-weight: 700;
+          font-size: 24px;
+          font-weight: 800;
           color: #fff;
-          margin-bottom: 4px;
+          margin-bottom: 6px;
+          letter-spacing: 0.3px;
         }
         .login-subtitle {
-          font-size: 14px;
-          color: #8b92a8;
-          margin-bottom: 28px;
+          font-size: 13px;
+          color: rgba(139,146,168,0.9);
+          margin-bottom: 32px;
+          letter-spacing: 0.5px;
+        }
+        .login-divider {
+          width: 40px;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, rgba(220,38,38,0.6), transparent);
+          margin: 0 auto 28px;
         }
         .login-error {
           color: #f87171;
@@ -891,9 +959,25 @@ export default function MDAQuizApp() {
       {!isLoggedIn ? (
         <div className="login-wrap">
           <div className="login-card">
-            <div className="login-logo">✡</div>
+            <div className="login-logo">
+              <div className="login-logo-circle">
+                <svg viewBox="0 0 100 100" width="44" height="44" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#f87171"/>
+                      <stop offset="100%" stopColor="#b91c1c"/>
+                    </linearGradient>
+                  </defs>
+                  <polygon
+                    points="50,10 61,31 83,31 72,50 83,69 61,69 50,90 39,69 17,69 28,50 17,31 39,31"
+                    fill="url(#starGrad)"
+                  />
+                </svg>
+              </div>
+            </div>
             <div className="login-title">מד״א — בנק שאלות</div>
             <div className="login-subtitle">בית הספר לפראמדיקים</div>
+            <div className="login-divider"></div>
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleError}
@@ -1084,6 +1168,11 @@ export default function MDAQuizApp() {
                           <div className="review-answer">
                             התשובה הנכונה: {q.options[q.correct]}
                           </div>
+                          {q.explanation && (
+                            <div className="review-answer" style={{ marginTop: 4, color: "rgba(251,191,36,0.7)" }}>
+                              💡 {q.explanation}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -1102,7 +1191,7 @@ export default function MDAQuizApp() {
                     className="btn-retry-wrong"
                     onClick={() => {
                       const wrongIds = answers.filter(a => !a.isCorrect).map(a => a.qId);
-                      const wrongQs = shuffle(QUESTIONS.filter(q => wrongIds.includes(q.id)));
+                      const wrongQs = shuffle(QUESTIONS.filter(q => wrongIds.includes(q.id))).map(shuffleOptions);
                       setQuizQuestions(wrongQs);
                       setCurrentIdx(0);
                       setSelected(null);
