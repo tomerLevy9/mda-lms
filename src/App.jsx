@@ -27,11 +27,21 @@ const AIRWAY_SOURCES = [
   "ניהול נתיב אוויר קשה",
 ];
 
+const BREATHING_SOURCES = [
+  "מצבי חירום נשימתיים נוספים",
+  "DD לחולה הנשימתי",
+  "CPAP",
+  "PEEP",
+  "שיטות הנשמה",
+  "הגישה למטופל המונשם",
+];
+
 // קבוצות של שיעורים — קיצורי דרך לבחירה מהירה
 const GROUPS = {
-  "מבואות": SOURCES.filter(s => !PHARMACO_SOURCES.includes(s) && !AIRWAY_SOURCES.includes(s)),
+  "מבואות": SOURCES.filter(s => !PHARMACO_SOURCES.includes(s) && !AIRWAY_SOURCES.includes(s) && !BREATHING_SOURCES.includes(s)),
   "פרמקולוגיה": PHARMACO_SOURCES,
   "נתיבי אוויר": AIRWAY_SOURCES,
+  "נשימה": BREATHING_SOURCES,
 };
 
 function shuffle(arr) {
