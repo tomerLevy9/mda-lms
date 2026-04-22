@@ -12,13 +12,7 @@ posthog.init("phc_kxL4zQeTY4eJZ7AxybUx3JPTng9H6WAvLRWEAZyftofr", {
 const SOURCES = [...new Set(QUESTIONS.map(q => q.source))];
 
 const PHARMACO_SOURCES = [
-  "מבוא לפרמקולוגיה",
-  "אירועי חשיפה ונוהל הזרקות",
-  "פרמקוקינטיקה",
-  "פרמקודינמיקה",
-  "גישה גרמית IO",
-  "גישה ורידית IV",
-  "הזרקות לשריר ותת עור",
+  "פרמקודינמיקה רספירטורית",
 ];
 
 const AIRWAY_SOURCES = [
