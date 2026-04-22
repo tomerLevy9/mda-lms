@@ -21,10 +21,23 @@ const PHARMACO_SOURCES = [
   "הזרקות לשריר ותת עור",
 ];
 
+const AIRWAY_SOURCES = [
+  "ניהול נתיב אוויר בסיסי",
+  "ניהול נתיב אוויר מתקדם",
+  "קפנומטריה וקפנוגרפיה",
+  "סטורציה",
+  "האזנה לריאות",
+  "תרופות הרדמה",
+  "פרוטוקול הפסקת נשימה מאיימת",
+  "וידאו לרינגוסקופ",
+  "ניהול נתיב אוויר קשה",
+];
+
 // קבוצות של שיעורים — קיצורי דרך לבחירה מהירה
 const GROUPS = {
-  "מבואות": SOURCES.filter(s => !PHARMACO_SOURCES.includes(s)),
+  "מבואות": SOURCES.filter(s => !PHARMACO_SOURCES.includes(s) && !AIRWAY_SOURCES.includes(s)),
   "פרמקולוגיה": PHARMACO_SOURCES,
+  "נתיבי אוויר": AIRWAY_SOURCES,
 };
 
 function shuffle(arr) {
