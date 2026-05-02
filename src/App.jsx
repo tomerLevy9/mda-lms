@@ -1,6 +1,14 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import QUESTIONS from "./questions.js";
+import {
+  CHAPTERS,
+  getChapterById,
+  getChapterQuestions,
+  getChapterQuestionCount,
+  getQuestionsForTopics,
+  getTopicQuestionCount,
+} from "./chapters.js";
 import posthog from "posthog-js";
 
 posthog.init("phc_kxL4zQeTY4eJZ7AxybUx3JPTng9H6WAvLRWEAZyftofr", {
@@ -8,48 +16,7 @@ posthog.init("phc_kxL4zQeTY4eJZ7AxybUx3JPTng9H6WAvLRWEAZyftofr", {
   person_profiles: "always",
 });
 
-
-const SOURCES = [...new Set(QUESTIONS.map(q => q.source))];
-
-const PHARMACO_SOURCES = [
-  "פרמקודינמיקה רספירטורית",
-  "מבוא לפרמקולוגיה",
-  "אירועי חשיפה ונוהל הזרקות",
-  "פרמקוקינטיקה",
-  "פרמקודינמיקה",
-  "גישה גרמית IO",
-  "גישה ורידית IV",
-  "הזרקות לשריר ותת עור",
-];
-
-const AIRWAY_SOURCES = [
-  "ניהול נתיב אוויר בסיסי",
-  "ניהול נתיב אוויר מתקדם",
-  "קפנומטריה וקפנוגרפיה",
-  "סטורציה",
-  "האזנה לריאות",
-  "תרופות הרדמה",
-  "פרוטוקול הפסקת נשימה מאיימת",
-  "וידאו לרינגוסקופ",
-  "ניהול נתיב אוויר קשה",
-];
-
-const BREATHING_SOURCES = [
-  "מצבי חירום נשימתיים נוספים",
-  "DD לחולה הנשימתי",
-  "CPAP",
-  "PEEP",
-  "שיטות הנשמה",
-  "הגישה למטופל המונשם",
-];
-
-// קבוצות של שיעורים — קיצורי דרך לבחירה מהירה
-const GROUPS = {
-  "מבואות": SOURCES.filter(s => !PHARMACO_SOURCES.includes(s) && !AIRWAY_SOURCES.includes(s) && !BREATHING_SOURCES.includes(s)),
-  "פרמקולוגיה": PHARMACO_SOURCES,
-  "נתיבי אוויר": AIRWAY_SOURCES,
-  "נשימה": BREATHING_SOURCES,
-};
+const SAMPLE_EXAM_SIZE = 30;
 
 function shuffle(arr) {
   const a = [...arr];
@@ -136,8 +103,11 @@ export default function MDAQuizApp() {
     setLoginError("ההתחברות נכשלה, נסה שוב");
   };
 
+  // screen: "home" | "chapters" | "topics" | "quiz" | "results"
   const [screen, setScreen] = useState("home");
-  const [filterSources, setFilterSources] = useState(new Set());
+  const [selectedChapterId, setSelectedChapterId] = useState(null);
+  const [selectedTopics, setSelectedTopics] = useState(new Set()); // נושאים נבחרים בתוך הפרק הפעיל
+  const [lastQuizScope, setLastQuizScope] = useState(null); // { mode, chapterId, topics } — להפעלה חוזרת
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -148,19 +118,7 @@ export default function MDAQuizApp() {
   const [streak, setStreak] = useState(0);
   const [maxStreak, setMaxStreak] = useState(0);
 
-  const toggleGroup = (groupName) => {
-    const groupSources = GROUPS[groupName] || [];
-    setFilterSources(prev => {
-      const allSelected = groupSources.every(s => prev.has(s));
-      const next = new Set(prev);
-      if (allSelected) {
-        groupSources.forEach(s => next.delete(s));
-      } else {
-        groupSources.forEach(s => next.add(s));
-      }
-      return next;
-    });
-  };
+  const activeChapter = selectedChapterId ? getChapterById(selectedChapterId) : null;
 
   const beginQuiz = (questions) => {
     if (questions.length === 0) return;
@@ -176,25 +134,94 @@ export default function MDAQuizApp() {
     setScreen("quiz");
   };
 
-  const getFilteredPool = useCallback(() => {
-    let pool = QUESTIONS;
-    if (filterSources.size > 0) pool = pool.filter(q => filterSources.has(q.source));
-    return pool;
-  }, [filterSources]);
+  const openChapter = (chapterId) => {
+    setSelectedChapterId(chapterId);
+    setSelectedTopics(new Set());
+    setScreen("topics");
+  };
 
-  const startQuiz = useCallback(() => {
-    const pool = getFilteredPool();
-    const topics = [...filterSources];
-    posthog.capture("quiz_started", { mode: "practice", topic_count: topics.length, topics, question_pool: pool.length });
+  const toggleTopic = (topic) => {
+    setSelectedTopics(prev => {
+      const next = new Set(prev);
+      if (next.has(topic)) next.delete(topic); else next.add(topic);
+      return next;
+    });
+  };
+
+  // תרגול מלא של פרק
+  const startChapterPractice = useCallback((chapterId) => {
+    const ch = getChapterById(chapterId);
+    if (!ch) return;
+    const pool = getChapterQuestions(chapterId);
+    posthog.capture("quiz_started", {
+      mode: "practice",
+      scope: "chapter",
+      chapter_id: chapterId,
+      chapter_title: ch.title,
+      topic_count: ch.topics.length,
+      question_pool: pool.length,
+    });
+    setLastQuizScope({ mode: "practice", chapterId, topics: null });
     beginQuiz(shuffle(pool));
-  }, [getFilteredPool, filterSources]);
+  }, []);
 
-  const startSampleExam = useCallback(() => {
-    const pool = getFilteredPool();
-    const topics = [...filterSources];
-    posthog.capture("quiz_started", { mode: "sample_exam", topic_count: topics.length, topics, question_pool: pool.length });
-    beginQuiz(pickSampleExam(pool, 30));
-  }, [getFilteredPool, filterSources]);
+  // מבחן לדוגמא על פרק יחיד
+  const startChapterExam = useCallback((chapterId) => {
+    const ch = getChapterById(chapterId);
+    if (!ch) return;
+    const pool = getChapterQuestions(chapterId);
+    posthog.capture("quiz_started", {
+      mode: "sample_exam",
+      scope: "chapter",
+      chapter_id: chapterId,
+      chapter_title: ch.title,
+      topic_count: ch.topics.length,
+      question_pool: pool.length,
+    });
+    setLastQuizScope({ mode: "exam", chapterId, topics: null });
+    beginQuiz(pickSampleExam(pool, SAMPLE_EXAM_SIZE));
+  }, []);
+
+  // תרגול נושאים נבחרים בתוך פרק
+  const startTopicsPractice = useCallback(() => {
+    if (!activeChapter || selectedTopics.size === 0) return;
+    const topicList = [...selectedTopics];
+    const pool = getQuestionsForTopics(topicList);
+    posthog.capture("quiz_started", {
+      mode: "practice",
+      scope: "topics",
+      chapter_id: activeChapter.id,
+      chapter_title: activeChapter.title,
+      topic_count: topicList.length,
+      topics: topicList,
+      question_pool: pool.length,
+    });
+    setLastQuizScope({ mode: "practice", chapterId: activeChapter.id, topics: topicList });
+    beginQuiz(shuffle(pool));
+  }, [activeChapter, selectedTopics]);
+
+  // מבחן מקיף — דגימה מאוזנת על כל הפרקים
+  const startFullExam = useCallback(() => {
+    posthog.capture("quiz_started", {
+      mode: "sample_exam",
+      scope: "all",
+      question_pool: QUESTIONS.length,
+    });
+    setLastQuizScope({ mode: "exam", chapterId: null, topics: null });
+    beginQuiz(pickSampleExam(QUESTIONS, SAMPLE_EXAM_SIZE));
+  }, []);
+
+  // הפעלה חוזרת של אותו תרגול — משמש בכפתור "תרגול חדש" אחרי תוצאות
+  const restartLastQuiz = useCallback(() => {
+    if (!lastQuizScope) return;
+    const { mode, chapterId, topics } = lastQuizScope;
+    let pool;
+    if (topics && topics.length) pool = getQuestionsForTopics(topics);
+    else if (chapterId) pool = getChapterQuestions(chapterId);
+    else pool = QUESTIONS;
+    if (mode === "exam") beginQuiz(pickSampleExam(pool, SAMPLE_EXAM_SIZE));
+    else beginQuiz(shuffle(pool));
+  }, [lastQuizScope]);
 
   const handleSelect = (idx) => {
     if (answered) return;
@@ -528,6 +555,305 @@ export default function MDAQuizApp() {
         .start-btn-secondary:hover {
           background: rgba(220,38,38,0.1);
           box-shadow: 0 4px 20px rgba(220,38,38,0.2);
+        }
+
+        /* HOME — action buttons (3-button layout) */
+        .action-btn {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 18px 20px;
+          margin-bottom: 12px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 16px;
+          color: #e8eaf0;
+          font-family: 'Heebo', sans-serif;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-align: right;
+          direction: rtl;
+        }
+
+        .action-btn:hover {
+          background: rgba(255,255,255,0.07);
+          border-color: rgba(255,255,255,0.15);
+          transform: translateY(-1px);
+        }
+
+        .action-primary {
+          background: linear-gradient(135deg, rgba(220,38,38,0.15), rgba(185,28,28,0.08));
+          border-color: rgba(220,38,38,0.35);
+        }
+
+        .action-primary:hover {
+          background: linear-gradient(135deg, rgba(220,38,38,0.22), rgba(185,28,28,0.12));
+          border-color: rgba(220,38,38,0.55);
+        }
+
+        .action-icon {
+          font-size: 28px;
+          width: 48px;
+          height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255,255,255,0.06);
+          border-radius: 12px;
+          flex-shrink: 0;
+        }
+
+        .action-body {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .action-title {
+          font-size: 17px;
+          font-weight: 700;
+          margin-bottom: 2px;
+        }
+
+        .action-sub {
+          font-size: 12px;
+          color: rgba(255,255,255,0.5);
+        }
+
+        .action-chevron {
+          font-size: 24px;
+          color: rgba(255,255,255,0.3);
+          font-weight: 300;
+        }
+
+        .home-meta {
+          margin-top: 20px;
+          text-align: center;
+          font-size: 12px;
+          color: rgba(255,255,255,0.35);
+          font-family: 'Rubik', sans-serif;
+        }
+
+        /* CHAPTERS / TOPICS list card */
+        .list-card {
+          background: linear-gradient(145deg, rgba(30,35,55,0.9), rgba(20,24,40,0.95));
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 20px;
+          padding: 28px 22px;
+          margin-top: 12px;
+          backdrop-filter: blur(20px);
+          box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        .breadcrumb {
+          font-size: 12px;
+          color: rgba(255,255,255,0.4);
+          margin-bottom: 8px;
+          font-family: 'Heebo', sans-serif;
+        }
+
+        .screen-title {
+          font-size: 22px;
+          font-weight: 800;
+          color: #f1f5f9;
+          margin-bottom: 4px;
+        }
+
+        .screen-sub {
+          font-size: 13px;
+          color: rgba(255,255,255,0.45);
+          margin-bottom: 22px;
+        }
+
+        .list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .list-item {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 16px 18px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 14px;
+          color: #e8eaf0;
+          font-family: 'Heebo', sans-serif;
+          cursor: pointer;
+          transition: all 0.18s;
+          text-align: right;
+          direction: rtl;
+        }
+
+        .list-item:hover {
+          background: rgba(255,255,255,0.07);
+          border-color: rgba(220,38,38,0.3);
+          transform: translateX(2px);
+        }
+
+        .list-item-body {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .list-item-title {
+          font-size: 16px;
+          font-weight: 600;
+          margin-bottom: 2px;
+          color: #f1f5f9;
+        }
+
+        .list-item-meta {
+          font-size: 12px;
+          color: rgba(255,255,255,0.45);
+          font-family: 'Rubik', sans-serif;
+        }
+
+        .list-chevron {
+          font-size: 22px;
+          color: rgba(255,255,255,0.25);
+          font-weight: 300;
+        }
+
+        /* TOPICS — CTAs + topic checkboxes */
+        .cta-row {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+
+        .cta-btn {
+          width: 100%;
+          padding: 14px 16px;
+          border-radius: 14px;
+          font-family: 'Heebo', sans-serif;
+          font-size: 15px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: none;
+        }
+
+        .cta-primary {
+          background: linear-gradient(135deg, #dc2626, #b91c1c);
+          color: #fff;
+          box-shadow: 0 4px 16px rgba(220,38,38,0.25);
+        }
+
+        .cta-primary:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 22px rgba(220,38,38,0.35);
+        }
+
+        .cta-secondary {
+          background: transparent;
+          border: 1.5px solid rgba(220,38,38,0.5) !important;
+          color: #fca5a5;
+        }
+
+        .cta-secondary:hover {
+          background: rgba(220,38,38,0.08);
+        }
+
+        .cta-secondary:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        .section-divider {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin: 8px 0 14px;
+          color: rgba(255,255,255,0.35);
+          font-size: 12px;
+        }
+
+        .section-divider::before,
+        .section-divider::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: rgba(255,255,255,0.08);
+        }
+
+        .topic-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .topic-row {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 12px;
+          color: #d1d5db;
+          font-family: 'Heebo', sans-serif;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.15s;
+          text-align: right;
+          direction: rtl;
+        }
+
+        .topic-row:hover:not(:disabled) {
+          background: rgba(255,255,255,0.06);
+          border-color: rgba(255,255,255,0.12);
+        }
+
+        .topic-row:disabled {
+          opacity: 0.35;
+          cursor: not-allowed;
+        }
+
+        .topic-row-active {
+          background: rgba(220,38,38,0.1) !important;
+          border-color: rgba(220,38,38,0.4) !important;
+          color: #fca5a5;
+        }
+
+        .topic-check {
+          width: 22px;
+          height: 22px;
+          border-radius: 6px;
+          border: 1.5px solid rgba(255,255,255,0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          font-weight: 700;
+          flex-shrink: 0;
+          background: rgba(0,0,0,0.15);
+        }
+
+        .topic-check-on {
+          background: #dc2626;
+          border-color: #dc2626;
+          color: #fff;
+        }
+
+        .topic-name {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .topic-count {
+          font-family: 'Rubik', sans-serif;
+          font-size: 12px;
+          color: rgba(255,255,255,0.4);
+          background: rgba(255,255,255,0.05);
+          padding: 2px 9px;
+          border-radius: 10px;
+          flex-shrink: 0;
         }
 
         /* QUIZ */
@@ -1023,7 +1349,15 @@ export default function MDAQuizApp() {
             </div>
           </div>
           {screen !== "home" && (
-            <button className="home-btn" onClick={() => setScreen("home")}>← תפריט ראשי</button>
+            <button
+              className="home-btn"
+              onClick={() => {
+                if (screen === "topics") setScreen("chapters");
+                else setScreen("home");
+              }}
+            >
+              {screen === "topics" ? "→ פרקים" : "→ תפריט ראשי"}
+            </button>
           )}
         </div>
 
@@ -1031,75 +1365,123 @@ export default function MDAQuizApp() {
           {screen === "home" && (
             <div className="home-card">
               <div className="home-title">תרגול למבחן</div>
-              <div className="home-subtitle">כימיה וביולוגיה — קורס פראמדיקים</div>
+              <div className="home-subtitle">בית הספר לפראמדיקים — מד״א</div>
 
-              <div className="filter-group">
-                <label className="filter-label">קיצורי דרך</label>
-                <div className="chip-list">
-                  {Object.keys(GROUPS).map(g => {
-                    const groupSources = GROUPS[g];
-                    const allSelected = groupSources.length > 0 && groupSources.every(s => filterSources.has(s));
-                    return (
-                      <button
-                        key={g}
-                        className={`chip ${allSelected ? "chip-active" : ""}`}
-                        onClick={() => toggleGroup(g)}
-                      >
-                        כל {g}
-                      </button>
-                    );
-                  })}
+              <button
+                className="action-btn action-primary"
+                onClick={() => setScreen("chapters")}
+              >
+                <div className="action-icon">🎯</div>
+                <div className="action-body">
+                  <div className="action-title">תרגול לפי פרק</div>
+                  <div className="action-sub">בחר פרק ונושאים מתוכו</div>
                 </div>
-              </div>
+                <div className="action-chevron">‹</div>
+              </button>
 
-              <div className="filter-group">
-                <label className="filter-label">סנן לפי שיעור</label>
-                <div className="chip-list">
-                  {SOURCES.map(s => (
+              <button
+                className="action-btn action-secondary"
+                onClick={startFullExam}
+              >
+                <div className="action-icon">📝</div>
+                <div className="action-body">
+                  <div className="action-title">מבחן מקיף</div>
+                  <div className="action-sub">{SAMPLE_EXAM_SIZE} שאלות מכל הפרקים</div>
+                </div>
+                <div className="action-chevron">‹</div>
+              </button>
+
+              <div className="home-meta">
+                {QUESTIONS.length} שאלות · {CHAPTERS.length} פרקים
+              </div>
+            </div>
+          )}
+
+          {screen === "chapters" && (
+            <div className="list-card">
+              <div className="screen-title">בחר פרק</div>
+              <div className="screen-sub">לחץ על פרק לבחירת נושאים</div>
+              <div className="list">
+                {CHAPTERS.map(ch => {
+                  const qCount = getChapterQuestionCount(ch.id);
+                  return (
                     <button
-                      key={s}
-                      className={`chip ${filterSources.has(s) ? "chip-active" : ""}`}
-                      onClick={() => {
-                        setFilterSources(prev => {
-                          const next = new Set(prev);
-                          if (next.has(s)) next.delete(s); else next.add(s);
-                          return next;
-                        });
-                      }}
+                      key={ch.id}
+                      className="list-item"
+                      onClick={() => openChapter(ch.id)}
                     >
-                      {s}
+                      <div className="list-item-body">
+                        <div className="list-item-title">{ch.title}</div>
+                        <div className="list-item-meta">
+                          {ch.topics.length} נושאים · {qCount} שאלות
+                        </div>
+                      </div>
+                      <div className="list-chevron">‹</div>
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {screen === "topics" && activeChapter && (
+            <div className="list-card">
+              <div className="breadcrumb">פרקים › {activeChapter.title}</div>
+              <div className="screen-title">{activeChapter.title}</div>
+              <div className="screen-sub">
+                {activeChapter.topics.length} נושאים · {getChapterQuestionCount(activeChapter.id)} שאלות
               </div>
 
-              <div className="q-count">
-                <strong>{
-                  QUESTIONS.filter(q =>
-                    filterSources.size === 0 || filterSources.has(q.source)
-                  ).length
-                }</strong> שאלות זמינות
+              <div className="cta-row">
+                <button
+                  className="cta-btn cta-primary"
+                  onClick={() => startChapterPractice(activeChapter.id)}
+                >
+                  תרגל את כל הפרק
+                </button>
+                <button
+                  className="cta-btn cta-secondary"
+                  onClick={() => startChapterExam(activeChapter.id)}
+                  disabled={getChapterQuestionCount(activeChapter.id) === 0}
+                >
+                  מבחן על הפרק ({SAMPLE_EXAM_SIZE} שאלות)
+                </button>
               </div>
 
-              <button
-                className="start-btn"
-                onClick={startQuiz}
-                disabled={QUESTIONS.filter(q =>
-                  filterSources.size === 0 || filterSources.has(q.source)
-                ).length === 0}
-              >
-                התחל תרגול
-              </button>
+              <div className="section-divider">
+                <span>או בחר נושאים ספציפיים</span>
+              </div>
 
-              <button
-                className="start-btn start-btn-secondary"
-                onClick={startSampleExam}
-                disabled={QUESTIONS.filter(q =>
-                  filterSources.size === 0 || filterSources.has(q.source)
-                ).length === 0}
-              >
-                מבחן לדוגמא (30 שאלות)
-              </button>
+              <div className="topic-list">
+                {activeChapter.topics.map(topic => {
+                  const count = getTopicQuestionCount(topic);
+                  const checked = selectedTopics.has(topic);
+                  return (
+                    <button
+                      key={topic}
+                      className={`topic-row ${checked ? "topic-row-active" : ""}`}
+                      onClick={() => toggleTopic(topic)}
+                      disabled={count === 0}
+                    >
+                      <span className={`topic-check ${checked ? "topic-check-on" : ""}`}>
+                        {checked ? "✓" : ""}
+                      </span>
+                      <span className="topic-name">{topic}</span>
+                      <span className="topic-count">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedTopics.size > 0 && (
+                <button
+                  className="start-btn"
+                  style={{ marginTop: 16 }}
+                  onClick={startTopicsPractice}
+                >
+                  תרגל את הנבחרים ({getQuestionsForTopics([...selectedTopics]).length} שאלות)
+                </button>
+              )}
             </div>
           )}
 
@@ -1205,7 +1587,7 @@ export default function MDAQuizApp() {
               )}
 
               <div className="btn-row">
-                <button className="btn-primary" onClick={startQuiz}>תרגול חדש</button>
+                <button className="btn-primary" onClick={restartLastQuiz}>תרגול חדש</button>
                 <button className="btn-secondary" onClick={() => setScreen("home")}>תפריט</button>
               </div>
 
