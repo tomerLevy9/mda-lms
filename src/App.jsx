@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import QUESTIONS from "./questions.js";
 import {
@@ -119,6 +119,56 @@ export default function MDAQuizApp() {
   const [maxStreak, setMaxStreak] = useState(0);
 
   const activeChapter = selectedChapterId ? getChapterById(selectedChapterId) : null;
+
+  // ── סנכרון ניווט עם היסטוריית הדפדפן (כפתורי קדימה/אחורה) ──
+  // המסכים home/chapters/topics/quiz/results נדחפים כרשומות נפרדות.
+  // popstate משחזר screen + selectedChapterId + selectedTopics.
+  // קצוות: רענון באמצע quiz/results מאבד את שאלות התרגול בזיכרון →
+  // popstate שמחזיר למצב ללא נתונים נופל חזרה ל-home.
+  const skipNextHistoryPush = useRef(false);
+  const isFirstHistoryRender = useRef(true);
+  const quizQuestionsRef = useRef(quizQuestions);
+  quizQuestionsRef.current = quizQuestions;
+
+  useEffect(() => {
+    const stateSnapshot = {
+      screen,
+      selectedChapterId,
+      selectedTopics: [...selectedTopics],
+    };
+    if (isFirstHistoryRender.current) {
+      isFirstHistoryRender.current = false;
+      window.history.replaceState(stateSnapshot, "");
+      return;
+    }
+    if (skipNextHistoryPush.current) {
+      skipNextHistoryPush.current = false;
+      return;
+    }
+    window.history.pushState(stateSnapshot, "");
+    // selectedTopics מועבר רק כחלק מה-snapshot, לא כתלות — אחרת כל toggle יוסיף רשומה
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, selectedChapterId]);
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      const s = event.state || { screen: "home" };
+      let nextScreen = s.screen || "home";
+      // אם רענון מחק את שאלות התרגול אבל היסטוריה זוכרת quiz/results — חזור ל-home
+      if (
+        (nextScreen === "quiz" || nextScreen === "results") &&
+        quizQuestionsRef.current.length === 0
+      ) {
+        nextScreen = "home";
+      }
+      skipNextHistoryPush.current = true;
+      setScreen(nextScreen);
+      setSelectedChapterId(s.selectedChapterId ?? null);
+      setSelectedTopics(new Set(s.selectedTopics || []));
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const beginQuiz = (questions) => {
     if (questions.length === 0) return;
