@@ -16,6 +16,8 @@ import {
   getChapterStats,
   getOverallStats,
   formatRelativeDate,
+  isFavorite,
+  toggleFavorite,
 } from "./stats.js";
 import posthog from "posthog-js";
 
@@ -766,6 +768,62 @@ export default function MDAQuizApp() {
 
         .list-item-studied {
           border-color: rgba(34,197,94,0.18);
+        }
+
+        /* CHAPTERS — favorite star */
+        .fav-btn {
+          flex-shrink: 0;
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.03);
+          color: rgba(255,255,255,0.35);
+          font-size: 20px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s;
+          font-family: 'Heebo', sans-serif;
+          line-height: 1;
+        }
+
+        .fav-btn:hover {
+          background: rgba(251,191,36,0.1);
+          border-color: rgba(251,191,36,0.3);
+          color: #fbbf24;
+          transform: scale(1.05);
+        }
+
+        .fav-btn-on {
+          background: rgba(251,191,36,0.15);
+          border-color: rgba(251,191,36,0.4);
+          color: #fbbf24;
+        }
+
+        .fav-btn-on:hover {
+          background: rgba(251,191,36,0.22);
+          border-color: rgba(251,191,36,0.5);
+        }
+
+        .list-item-fav {
+          background: linear-gradient(90deg, rgba(251,191,36,0.06), rgba(255,255,255,0.03));
+          border-color: rgba(251,191,36,0.22);
+        }
+
+        .list-item-fav:hover {
+          border-color: rgba(251,191,36,0.4);
+        }
+
+        /* החלפת button ל-div דורשת להחזיר התנהגות hover ידנית */
+        .list-item {
+          outline: none;
+        }
+
+        .list-item:focus-visible {
+          border-color: rgba(220,38,38,0.5);
+          box-shadow: 0 0 0 2px rgba(220,38,38,0.2);
         }
 
         /* CHAPTERS / TOPICS list card */
@@ -1559,16 +1617,45 @@ export default function MDAQuizApp() {
               <div className="screen-title">בחר פרק</div>
               <div className="screen-sub">לחץ על פרק לבחירת נושאים</div>
               <div className="list">
-                {CHAPTERS.map(ch => {
+                {[...CHAPTERS].sort((a, b) => {
+                  const fa = isFavorite(a.id);
+                  const fb = isFavorite(b.id);
+                  if (fa && !fb) return -1;
+                  if (!fa && fb) return 1;
+                  return 0;
+                }).map(ch => {
                   const qCount = getChapterQuestionCount(ch.id);
                   const stats = getChapterStats(ch.id);
                   const studied = stats && stats.practiceCount > 0;
+                  const fav = isFavorite(ch.id);
                   return (
-                    <button
+                    <div
                       key={ch.id}
-                      className={`list-item ${studied ? "list-item-studied" : ""}`}
+                      className={`list-item ${studied ? "list-item-studied" : ""} ${fav ? "list-item-fav" : ""}`}
                       onClick={() => openChapter(ch.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openChapter(ch.id);
+                        }
+                      }}
                     >
+                      <button
+                        type="button"
+                        className={`fav-btn ${fav ? "fav-btn-on" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(ch.id);
+                          posthog.capture("chapter_favorite_toggled", { chapter_id: ch.id, chapter_title: ch.title, favorited: !fav });
+                          setStatsTick(t => t + 1);
+                        }}
+                        aria-label={fav ? "הסר ממועדפים" : "הוסף למועדפים"}
+                        aria-pressed={fav}
+                      >
+                        {fav ? "★" : "☆"}
+                      </button>
                       <div className="list-item-body">
                         <div className="list-item-title">{ch.title}</div>
                         <div className="list-item-meta">
@@ -1584,7 +1671,7 @@ export default function MDAQuizApp() {
                         )}
                       </div>
                       <div className="list-chevron">‹</div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

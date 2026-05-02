@@ -6,7 +6,13 @@ function read() {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultStats();
     const parsed = JSON.parse(raw);
-    return { ...defaultStats(), ...parsed, perChapter: { ...parsed.perChapter } };
+    return {
+      ...defaultStats(),
+      ...parsed,
+      perChapter: { ...(parsed.perChapter || {}) },
+      favorites: Array.isArray(parsed.favorites) ? [...parsed.favorites] : [],
+      studyDays: Array.isArray(parsed.studyDays) ? [...parsed.studyDays] : [],
+    };
   } catch {
     return defaultStats();
   }
@@ -27,6 +33,7 @@ function defaultStats() {
     totalAnswered: 0,
     totalCorrect: 0,
     studyDays: [], // YYYY-MM-DD
+    favorites: [], // chapter ids — סדר ההוספה נשמר
   };
 }
 
@@ -66,6 +73,23 @@ export function recordAnswer(chapterId, isCorrect) {
 
 export function getChapterStats(chapterId) {
   return read().perChapter[chapterId] || null;
+}
+
+export function getFavorites() {
+  return read().favorites || [];
+}
+
+export function isFavorite(chapterId) {
+  return (read().favorites || []).includes(chapterId);
+}
+
+export function toggleFavorite(chapterId) {
+  const s = read();
+  if (!Array.isArray(s.favorites)) s.favorites = [];
+  const idx = s.favorites.indexOf(chapterId);
+  if (idx >= 0) s.favorites.splice(idx, 1);
+  else s.favorites.push(chapterId);
+  write(s);
 }
 
 export function getOverallStats() {
