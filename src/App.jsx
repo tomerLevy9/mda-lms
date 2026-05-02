@@ -4,11 +4,19 @@ import QUESTIONS from "./questions.js";
 import {
   CHAPTERS,
   getChapterById,
+  getChapterByTopic,
   getChapterQuestions,
   getChapterQuestionCount,
   getQuestionsForTopics,
   getTopicQuestionCount,
 } from "./chapters.js";
+import {
+  recordQuizStart,
+  recordAnswer,
+  getChapterStats,
+  getOverallStats,
+  formatRelativeDate,
+} from "./stats.js";
 import posthog from "posthog-js";
 
 posthog.init("phc_kxL4zQeTY4eJZ7AxybUx3JPTng9H6WAvLRWEAZyftofr", {
@@ -108,6 +116,7 @@ export default function MDAQuizApp() {
   const [selectedChapterId, setSelectedChapterId] = useState(null);
   const [selectedTopics, setSelectedTopics] = useState(new Set()); // נושאים נבחרים בתוך הפרק הפעיל
   const [lastQuizScope, setLastQuizScope] = useState(null); // { mode, chapterId, topics } — להפעלה חוזרת
+  const [_statsTick, setStatsTick] = useState(0); // force re-render כשסטטיסטיקות מתעדכנות
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -172,6 +181,12 @@ export default function MDAQuizApp() {
 
   const beginQuiz = (questions) => {
     if (questions.length === 0) return;
+    // רישום סטטיסטיקה לפי הפרקים שמכוסים בפועל בשאלות הנבחרות
+    const chapterIds = [...new Set(
+      questions.map(q => getChapterByTopic(q.source)?.id).filter(Boolean)
+    )];
+    recordQuizStart(chapterIds);
+    setStatsTick(t => t + 1);
     setQuizQuestions(questions.map(shuffleOptions));
     setCurrentIdx(0);
     setSelected(null);
@@ -287,6 +302,7 @@ export default function MDAQuizApp() {
       question_number: currentIdx + 1,
       total_questions: quizQuestions.length,
     });
+    recordAnswer(getChapterByTopic(q.source)?.id, isCorrect);
     if (isCorrect) {
       setScore(s => s + 1);
       setStreak(s => {
@@ -310,6 +326,7 @@ export default function MDAQuizApp() {
         score_pct: Math.round((score / quizQuestions.length) * 100),
         topics: [...new Set(quizQuestions.map(q => q.source))],
       });
+      setStatsTick(t => t + 1);
       setScreen("results");
     } else {
       setCurrentIdx(i => i + 1);
@@ -682,6 +699,73 @@ export default function MDAQuizApp() {
           font-size: 12px;
           color: rgba(255,255,255,0.35);
           font-family: 'Rubik', sans-serif;
+        }
+
+        /* HOME — overall stats pills */
+        .overall-stats {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 22px;
+        }
+
+        .stat-pill {
+          flex: 1;
+          padding: 10px 8px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 12px;
+          text-align: center;
+        }
+
+        .stat-pill-num {
+          font-size: 20px;
+          font-weight: 800;
+          font-family: 'Rubik', sans-serif;
+          color: #f1f5f9;
+          line-height: 1.2;
+        }
+
+        .stat-pill-label {
+          font-size: 11px;
+          color: rgba(255,255,255,0.45);
+          margin-top: 2px;
+        }
+
+        .stat-pill-streak {
+          background: rgba(251,191,36,0.08);
+          border-color: rgba(251,191,36,0.25);
+        }
+
+        .stat-pill-streak .stat-pill-num {
+          color: #fbbf24;
+        }
+
+        /* CHAPTERS — per-chapter studied indicator */
+        .list-item-stats {
+          margin-top: 6px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .stat-chip {
+          font-size: 11px;
+          color: #86efac;
+          background: rgba(34,197,94,0.1);
+          border: 1px solid rgba(34,197,94,0.25);
+          padding: 2px 8px;
+          border-radius: 10px;
+          font-family: 'Heebo', sans-serif;
+        }
+
+        .stat-time {
+          font-size: 11px;
+          color: rgba(255,255,255,0.4);
+        }
+
+        .list-item-studied {
+          border-color: rgba(34,197,94,0.18);
         }
 
         /* CHAPTERS / TOPICS list card */
@@ -1417,6 +1501,29 @@ export default function MDAQuizApp() {
               <div className="home-title">תרגול למבחן</div>
               <div className="home-subtitle">בית הספר לפראמדיקים — מד״א</div>
 
+              {(() => {
+                const overall = getOverallStats();
+                if (overall.totalQuizzes === 0) return null;
+                return (
+                  <div className="overall-stats">
+                    <div className="stat-pill">
+                      <div className="stat-pill-num">{overall.totalQuizzes}</div>
+                      <div className="stat-pill-label">תרגולים</div>
+                    </div>
+                    <div className="stat-pill">
+                      <div className="stat-pill-num">{overall.accuracy}%</div>
+                      <div className="stat-pill-label">דיוק</div>
+                    </div>
+                    {overall.streak >= 2 && (
+                      <div className="stat-pill stat-pill-streak">
+                        <div className="stat-pill-num">🔥 {overall.streak}</div>
+                        <div className="stat-pill-label">ימים ברצף</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <button
                 className="action-btn action-primary"
                 onClick={() => setScreen("chapters")}
@@ -1454,10 +1561,12 @@ export default function MDAQuizApp() {
               <div className="list">
                 {CHAPTERS.map(ch => {
                   const qCount = getChapterQuestionCount(ch.id);
+                  const stats = getChapterStats(ch.id);
+                  const studied = stats && stats.practiceCount > 0;
                   return (
                     <button
                       key={ch.id}
-                      className="list-item"
+                      className={`list-item ${studied ? "list-item-studied" : ""}`}
                       onClick={() => openChapter(ch.id)}
                     >
                       <div className="list-item-body">
@@ -1465,6 +1574,14 @@ export default function MDAQuizApp() {
                         <div className="list-item-meta">
                           {ch.topics.length} נושאים · {qCount} שאלות
                         </div>
+                        {studied && (
+                          <div className="list-item-stats">
+                            <span className="stat-chip">
+                              ✓ תרגלת {stats.practiceCount} {stats.practiceCount === 1 ? "פעם" : "פעמים"}
+                            </span>
+                            <span className="stat-time">{formatRelativeDate(stats.lastPracticed)}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="list-chevron">‹</div>
                     </button>

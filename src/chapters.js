@@ -171,8 +171,18 @@ if (dupeTopic.length > 0) {
 
 export const CHAPTER_BY_ID = Object.fromEntries(CHAPTERS.map(c => [c.id, c]));
 
+const CHAPTER_BY_TOPIC = (() => {
+  const map = {};
+  for (const c of CHAPTERS) for (const t of c.topics) map[t] = c;
+  return map;
+})();
+
 export function getChapterById(id) {
   return CHAPTER_BY_ID[id] || null;
+}
+
+export function getChapterByTopic(topic) {
+  return CHAPTER_BY_TOPIC[topic] || null;
 }
 
 export function getTopicQuestionCount(topic) {
