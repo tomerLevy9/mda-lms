@@ -1179,15 +1179,33 @@ export default function MDAQuizApp() {
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
+        .tag-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin-bottom: 16px;
+        }
+
+        .chapter-tag,
         .topic-tag {
           display: inline-block;
           padding: 4px 12px;
-          background: rgba(59,130,246,0.12);
-          border: 1px solid rgba(59,130,246,0.2);
           border-radius: 20px;
           font-size: 12px;
+          line-height: 1.4;
+        }
+
+        .chapter-tag {
+          background: rgba(220,38,38,0.12);
+          border: 1px solid rgba(220,38,38,0.25);
+          color: #fca5a5;
+          font-weight: 500;
+        }
+
+        .topic-tag {
+          background: rgba(59,130,246,0.12);
+          border: 1px solid rgba(59,130,246,0.2);
           color: #93c5fd;
-          margin-bottom: 16px;
         }
 
         .q-text {
@@ -1816,7 +1834,13 @@ export default function MDAQuizApp() {
               </div>
 
               <div className="quiz-card">
-                <div className="topic-tag">{currentQ.topic}</div>
+                <div className="tag-row">
+                  {(() => {
+                    const ch = getChapterByTopic(currentQ.source);
+                    return ch ? <span className="chapter-tag">{ch.title}</span> : null;
+                  })()}
+                  <span className="topic-tag">{currentQ.topic}</span>
+                </div>
                 <div className="q-text">{currentQ.question}</div>
 
                 <div className="options-list">
