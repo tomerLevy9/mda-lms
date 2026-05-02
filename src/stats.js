@@ -1,21 +1,68 @@
 // סטטיסטיקות אישיות — נשמרות ב-localStorage. אין שיתוף עם משתמשים אחרים.
 const KEY = "mda_stats_v1";
 
+// מיפוי מזהי פרקים ישנים אל הפרק החדש לאחר איחוד המבואות.
+// משמש להעברת מועדפים/סטטיסטיקות של משתמשים קיימים.
+const CHAPTER_ID_MIGRATIONS = {
+  "chemistry-cell": "intro",
+  "respiratory-basics": "intro",
+  "cardiovascular": "intro",
+  "blood-immune": "intro",
+  "body-systems": "intro",
+  "homeostasis": "intro",
+  "pathophysiology": "intro",
+};
+const SCHEMA_VERSION = 2;
+
 function read() {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultStats();
     const parsed = JSON.parse(raw);
-    return {
+    const merged = {
       ...defaultStats(),
       ...parsed,
       perChapter: { ...(parsed.perChapter || {}) },
       favorites: Array.isArray(parsed.favorites) ? [...parsed.favorites] : [],
       studyDays: Array.isArray(parsed.studyDays) ? [...parsed.studyDays] : [],
     };
+    if (merged.schemaVersion !== SCHEMA_VERSION) {
+      const migrated = migrate(merged);
+      write(migrated);
+      return migrated;
+    }
+    return merged;
   } catch {
     return defaultStats();
   }
+}
+
+function migrate(s) {
+  const remapId = (id) => CHAPTER_ID_MIGRATIONS[id] || id;
+
+  // איחוד מועדפים — סדר ההוספה נשמר, כפילויות נמחקות
+  const newFavs = [];
+  for (const id of s.favorites) {
+    const mapped = remapId(id);
+    if (!newFavs.includes(mapped)) newFavs.push(mapped);
+  }
+
+  // איחוד סטטיסטיקות per-chapter — סוכמים פעולות, lastPracticed = המאוחר ביותר
+  const newPC = {};
+  for (const [id, entry] of Object.entries(s.perChapter)) {
+    const mapped = remapId(id);
+    if (!newPC[mapped]) {
+      newPC[mapped] = { practiceCount: 0, lastPracticed: null, correctTotal: 0, answeredTotal: 0 };
+    }
+    newPC[mapped].practiceCount += entry.practiceCount || 0;
+    newPC[mapped].correctTotal += entry.correctTotal || 0;
+    newPC[mapped].answeredTotal += entry.answeredTotal || 0;
+    if (entry.lastPracticed && (!newPC[mapped].lastPracticed || entry.lastPracticed > newPC[mapped].lastPracticed)) {
+      newPC[mapped].lastPracticed = entry.lastPracticed;
+    }
+  }
+
+  return { ...s, favorites: newFavs, perChapter: newPC, schemaVersion: SCHEMA_VERSION };
 }
 
 function write(s) {
@@ -34,6 +81,7 @@ function defaultStats() {
     totalCorrect: 0,
     studyDays: [], // YYYY-MM-DD
     favorites: [], // chapter ids — סדר ההוספה נשמר
+    schemaVersion: SCHEMA_VERSION,
   };
 }
 
