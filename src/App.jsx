@@ -1437,7 +1437,7 @@ export default function MDAQuizApp() {
                   className="cta-btn cta-primary"
                   onClick={() => startChapterPractice(activeChapter.id)}
                 >
-                  תרגל את כל הפרק
+                  תרגל את כל הנושאים
                 </button>
                 <button
                   className="cta-btn cta-secondary"
