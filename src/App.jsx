@@ -471,6 +471,10 @@ export default function MDAQuizApp() {
           z-index: 1;
         }
 
+        .container-wide {
+          max-width: 800px;
+        }
+
         /* HOME */
         .home-card {
           background: linear-gradient(145deg, rgba(30,35,55,0.9), rgba(20,24,40,0.95));
@@ -816,6 +820,36 @@ export default function MDAQuizApp() {
           border-color: rgba(251,191,36,0.4);
         }
 
+        /* פס פעולה צף — מופיע כשנבחרו נושאים, מוצמד לתחתית ה-viewport */
+        .floating-action-bar {
+          position: fixed;
+          bottom: 16px;
+          left: 16px;
+          right: 16px;
+          max-width: 480px;
+          margin: 0 auto;
+          z-index: 50;
+          background: rgba(20,24,40,0.85);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border: 1px solid rgba(220,38,38,0.3);
+          border-radius: 16px;
+          padding: 8px;
+          box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+          animation: fabIn 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        @keyframes fabIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .floating-action-bar .start-btn {
+          margin: 0;
+          padding: 14px;
+          font-size: 16px;
+        }
+
         /* החלפת button ל-div דורשת להחזיר התנהגות hover ידנית */
         .list-item {
           outline: none;
@@ -910,12 +944,32 @@ export default function MDAQuizApp() {
           font-weight: 300;
         }
 
+        /* TOPICS — מסך עם פריסה רחבה יותר במחשב */
+        .topics-card {
+          padding: 22px 22px 26px;
+        }
+
+        /* התאמת מרווח תחתון בכרטיס נושאים כשפס פעולה צף נמצא במסך,
+           כדי שהשורה האחרונה לא תיחבא מתחתיו במובייל */
+        .topics-card.topics-card-with-fab {
+          padding-bottom: 96px;
+        }
+
         /* TOPICS — CTAs + topic checkboxes */
         .cta-row {
           display: flex;
           flex-direction: column;
           gap: 10px;
           margin-bottom: 20px;
+        }
+
+        @media (min-width: 560px) {
+          .cta-row {
+            flex-direction: row;
+          }
+          .cta-row .cta-btn {
+            flex: 1;
+          }
         }
 
         .cta-btn {
@@ -974,9 +1028,16 @@ export default function MDAQuizApp() {
         }
 
         .topic-list {
-          display: flex;
-          flex-direction: column;
+          display: grid;
+          grid-template-columns: 1fr;
           gap: 6px;
+        }
+
+        @media (min-width: 560px) {
+          .topic-list {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 8px;
+          }
         }
 
         .topic-row {
@@ -1553,7 +1614,7 @@ export default function MDAQuizApp() {
           )}
         </div>
 
-        <div className="container">
+        <div className={`container ${screen === "topics" ? "container-wide" : ""}`}>
           {screen === "home" && (
             <div className="home-card">
               <div className="home-title">תרגול למבחן</div>
@@ -1679,7 +1740,7 @@ export default function MDAQuizApp() {
           )}
 
           {screen === "topics" && activeChapter && (
-            <div className="list-card">
+            <div className={`list-card topics-card ${selectedTopics.size > 0 ? "topics-card-with-fab" : ""}`}>
               <div className="breadcrumb">פרקים › {activeChapter.title}</div>
               <div className="screen-title">{activeChapter.title}</div>
               <div className="screen-sub">
@@ -1727,15 +1788,14 @@ export default function MDAQuizApp() {
                 })}
               </div>
 
-              {selectedTopics.size > 0 && (
-                <button
-                  className="start-btn"
-                  style={{ marginTop: 16 }}
-                  onClick={startTopicsPractice}
-                >
-                  תרגל את הנבחרים ({getQuestionsForTopics([...selectedTopics]).length} שאלות)
-                </button>
-              )}
+            </div>
+          )}
+
+          {screen === "topics" && selectedTopics.size > 0 && (
+            <div className="floating-action-bar">
+              <button className="start-btn" onClick={startTopicsPractice}>
+                תרגל את הנבחרים ({getQuestionsForTopics([...selectedTopics]).length} שאלות)
+              </button>
             </div>
           )}
 
