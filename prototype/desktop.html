@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PassDMV — Desktop Browser Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3B82F6;
+      --primary-dark: #2563EB;
+      --primary-light: #DBEAFE;
+      --secondary: #22C55E;
+      --secondary-light: #DCFCE7;
+      --accent: #FACC15;
+      --accent-light: #FEF9C3;
+      --error: #EF4444;
+      --error-light: #FEE2E2;
+      --bg: #FAFAFA;
+      --surface: #FFFFFF;
+      --text: #1E293B;
+      --text-secondary: #64748B;
+      --text-muted: #94A3B8;
+      --border: #E2E8F0;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --radius-xs: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 10px 40px rgba(0,0,0,0.12);
+      --sidebar-width: 260px;
+      --topbar-height: 64px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: #F1F5F9; color: var(--text); }
+
+    /* ===== PROTOTYPE NAV ===== */
+    .proto-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: #1E293B; color: white;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 20px; font-size: 13px;
+    }
+    .proto-bar span { opacity: 0.6; margin-right: 8px; }
+    .proto-pill {
+      padding: 5px 14px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,0.2);
+      background: transparent; color: white; font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .proto-pill:hover { border-color: rgba(255,255,255,0.5); }
+    .proto-pill.active { background: var(--primary); border-color: var(--primary); }
+
+    /* ===== BROWSER CHROME ===== */
+    .browser-chrome {
+      position: fixed; top: 42px; left: 0; right: 0;
+      background: #F8FAFC; border-bottom: 1px solid var(--border);
+      padding: 10px 16px; display: flex; align-items: center; gap: 12px;
+      z-index: 900;
+    }
+    .browser-dots { display: flex; gap: 6px; }
+    .browser-dots span { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red { background: #EF4444; }
+    .dot-yellow { background: #FACC15; }
+    .dot-green { background: #22C55E; }
+    .browser-nav { display: flex; gap: 4px; }
+    .browser-nav button {
+      width: 28px; height: 28px; border-radius: 6px; border: none;
+      background: var(--bg); color: var(--text-muted); font-size: 14px; cursor: pointer;
+    }
+    .browser-url {
+      flex: 1; height: 34px; background: white; border: 1px solid var(--border);
+      border-radius: 8px; padding: 0 14px; font-size: 13px; color: var(--text-secondary);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .browser-url .lock { color: var(--secondary); font-size: 12px; }
+    .browser-url .url-text { color: var(--text-muted); }
+    .browser-url .url-domain { color: var(--text); font-weight: 500; }
+
+    /* ===== APP LAYOUT ===== */
+    .app-container {
+      margin-top: 92px; /* proto bar + browser chrome */
+      display: flex;
+      min-height: calc(100vh - 92px);
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: fixed; top: 92px; left: 0; bottom: 0;
+      display: flex; flex-direction: column;
+      z-index: 100;
+      overflow-y: auto;
+    }
+    .sidebar-logo {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 24px; font-weight: 700; color: var(--primary);
+    }
+    .sidebar-logo h1 span { color: var(--secondary); }
+    .sidebar-logo p { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .sidebar-user {
+      padding: 16px 20px;
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--primary-light); display: flex; align-items: center;
+      justify-content: center; font-size: 18px;
+    }
+    .sidebar-user-info h4 { font-size: 14px; font-weight: 600; }
+    .sidebar-user-info p { font-size: 11px; color: var(--text-secondary); }
+
+    .sidebar-nav { padding: 12px 0; flex: 1; }
+    .sidebar-nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 20px; font-size: 14px; font-weight: 500;
+      color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
+      border: none; background: none; width: 100%; text-align: left;
+      font-family: inherit;
+    }
+    .sidebar-nav-item:hover { background: var(--bg); color: var(--text); }
+    .sidebar-nav-item.active { background: var(--primary-light); color: var(--primary-dark); font-weight: 600; }
+    .sidebar-nav-item .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+    .sidebar-nav-item .nav-badge {
+      margin-left: auto; padding: 2px 8px; border-radius: 10px;
+      font-size: 11px; font-weight: 700;
+    }
+
+    .sidebar-section-label {
+      padding: 16px 20px 6px; font-size: 11px; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .sidebar-upgrade {
+      padding: 16px 20px; border-top: 1px solid var(--border);
+    }
+    .sidebar-upgrade-card {
+      padding: 16px; background: linear-gradient(135deg, #EEF2FF, #DBEAFE);
+      border-radius: var(--radius-sm); text-align: center;
+    }
+    .sidebar-upgrade-card p { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
+    .sidebar-upgrade-card button {
+      padding: 8px 20px; border-radius: 8px; border: none;
+      background: var(--primary); color: white; font-size: 13px;
+      font-weight: 600; cursor: pointer; font-family: inherit;
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .main-content {
+      margin-left: var(--sidebar-width);
+      flex: 1; padding: 32px 40px;
+      max-width: 1100px;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ===== TOP BAR ===== */
+    .topbar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 28px;
+    }
+    .topbar h1 { font-size: 28px; font-weight: 800; }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .topbar-streak {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px; background: var(--accent-light); border-radius: 20px;
+      font-size: 13px; font-weight: 700; color: #854D0E;
+    }
+    .topbar-notif {
+      width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border);
+      background: white; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; cursor: pointer; position: relative;
+    }
+    .topbar-notif .notif-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--error);
+      position: absolute; top: 8px; right: 8px;
+    }
+
+    /* ===== DASHBOARD GRID ===== */
+    .dash-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 20px;
+    }
+    .dash-grid .card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 24px; box-shadow: var(--shadow);
+    }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .card-header h3 { font-size: 15px; font-weight: 700; }
+    .card-header a { font-size: 13px; font-weight: 600; color: var(--primary); cursor: pointer; text-decoration: none; }
+
+    /* Readiness card - spans 1 col */
+    .readiness-card { grid-column: 1; grid-row: 1; text-align: center; }
+    .readiness-ring { width: 160px; height: 160px; margin: 0 auto 16px; position: relative; }
+    .readiness-ring svg { transform: rotate(-90deg); }
+    .readiness-ring .ring-text {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); text-align: center;
+    }
+    .ring-percent { font-size: 40px; font-weight: 800; display: block; }
+    .ring-label { font-size: 12px; color: var(--text-secondary); }
+    .readiness-status { font-size: 13px; color: var(--text-secondary); }
+    .readiness-status strong { color: var(--accent); }
+
+    /* Quick actions - spans 2 cols */
+    .actions-card { grid-column: 2 / 4; grid-row: 1; }
+    .actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .action-btn {
+      padding: 20px; border-radius: var(--radius-sm); cursor: pointer;
+      transition: all 0.2s; border: none; text-align: left; font-family: inherit;
+    }
+    .action-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .action-btn .act-icon { font-size: 28px; margin-bottom: 8px; }
+    .action-btn .act-label { font-size: 15px; font-weight: 700; display: block; }
+    .action-btn .act-sub { font-size: 12px; margin-top: 2px; display: block; }
+    .ab-blue { background: var(--primary-light); color: var(--primary-dark); }
+    .ab-green { background: var(--secondary-light); color: #166534; }
+    .ab-yellow { background: var(--accent-light); color: #854D0E; }
+    .ab-red { background: var(--error-light); color: #991B1B; }
+
+    /* XP bar - full width */
+    .xp-card { grid-column: 1 / 4; }
+    .xp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .xp-level { font-size: 15px; font-weight: 700; }
+    .xp-level .level-badge { color: var(--primary); }
+    .xp-points { font-size: 13px; color: var(--text-secondary); }
+    .xp-track { width: 100%; height: 10px; background: var(--border); border-radius: 5px; }
+    .xp-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--primary), #818CF8); transition: width 0.5s; }
+    .xp-milestones { display: flex; justify-content: space-between; margin-top: 8px; }
+    .xp-milestone { font-size: 11px; color: var(--text-muted); }
+    .xp-milestone.current { color: var(--primary); font-weight: 600; }
+
+    /* Weak topics */
+    .weak-card { grid-column: 1 / 3; }
+    .weak-topics { display: flex; flex-direction: column; gap: 10px; }
+    .weak-topic {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; background: var(--bg); border-radius: var(--radius-xs);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .weak-topic:hover { background: var(--primary-light); }
+    .wt-icon { font-size: 22px; }
+    .wt-info { flex: 1; }
+    .wt-name { font-size: 14px; font-weight: 600; }
+    .wt-score { font-size: 12px; color: var(--error); }
+    .wt-bar { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-top: 6px; }
+    .wt-bar-fill { height: 100%; border-radius: 2px; }
+    .wt-action {
+      padding: 6px 14px; border-radius: 6px; border: 1.5px solid var(--primary);
+      background: transparent; color: var(--primary); font-size: 12px;
+      font-weight: 600; cursor: pointer; font-family: inherit; white-space: nowrap;
+    }
+    .wt-action:hover { background: var(--primary); color: white; }
+
+    /* Leaderboard */
+    .lb-card { grid-column: 3; }
+    .lb-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-rank { font-size: 14px; font-weight: 700; width: 20px; text-align: center; }
+    .lb-rank.gold { color: #D97706; }
+    .lb-rank.silver { color: #6B7280; }
+    .lb-rank.bronze { color: #B45309; }
+    .lb-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .lb-name { flex: 1; font-size: 13px; font-weight: 500; }
+    .lb-name.you { font-weight: 700; color: var(--primary); }
+    .lb-xp { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+    .lb-you-row { background: var(--primary-light); border-radius: 8px; padding: 10px !important; margin-top: 8px; }
+
+    /* ===== PRACTICE TEST SCREEN ===== */
+    .test-layout { display: grid; grid-template-columns: 1fr 380px; gap: 32px; }
+    .test-main {}
+    .test-sidebar {}
+
+    .test-progress { margin-bottom: 24px; }
+    .test-progress-bar { width: 100%; height: 8px; background: var(--border); border-radius: 4px; margin-bottom: 8px; }
+    .test-progress-fill { height: 100%; border-radius: 4px; background: var(--primary); }
+    .test-progress-text { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); }
+
+    .question-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 32px; box-shadow: var(--shadow);
+    }
+    .q-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .q-num { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
+    .q-category { padding: 4px 12px; border-radius: 12px; background: var(--primary-light); font-size: 12px; font-weight: 600; color: var(--primary-dark); }
+    .q-image {
+      width: 100%; height: 180px; background: linear-gradient(135deg, var(--accent-light), var(--primary-light));
+      border-radius: var(--radius-xs); display: flex; align-items: center;
+      justify-content: center; font-size: 80px; margin-bottom: 24px;
+    }
+    .q-text { font-size: 20px; font-weight: 700; line-height: 1.5; margin-bottom: 28px; }
+    .q-options { display: flex; flex-direction: column; gap: 12px; }
+    .q-option {
+      padding: 18px 20px; border-radius: var(--radius-xs); border: 2px solid var(--border);
+      background: var(--surface); cursor: pointer; transition: all 0.15s;
+      display: flex; align-items: center; gap: 14px; font-size: 15px;
+      font-family: inherit; color: var(--text); text-align: left; width: 100%;
+    }
+    .q-option:hover { border-color: var(--primary); background: #F8FAFF; }
+    .q-option.selected { border-color: var(--primary); background: var(--primary-light); }
+    .q-option.correct { border-color: var(--secondary); background: var(--secondary-light); }
+    .q-option.wrong { border-color: var(--error); background: var(--error-light); }
+    .q-letter {
+      width: 36px; height: 36px; border-radius: 8px; background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; flex-shrink: 0;
+    }
+    .q-option.selected .q-letter { background: var(--primary); color: white; }
+    .q-option.correct .q-letter { background: var(--secondary); color: white; }
+    .q-option.wrong .q-letter { background: var(--error); color: white; }
+    .q-explanation {
+      margin-top: 16px; padding: 16px; background: var(--secondary-light);
+      border-radius: var(--radius-xs); border-left: 4px solid var(--secondary);
+      font-size: 14px; color: #166534; line-height: 1.5; display: none;
+    }
+    .q-explanation.visible { display: block; }
+    .q-nav { display: flex; justify-content: space-between; margin-top: 24px; }
+    .q-nav-btn {
+      padding: 12px 24px; border-radius: var(--radius-xs);
+      font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+      border: none; transition: all 0.15s;
+    }
+    .q-nav-prev { background: var(--bg); color: var(--text-secondary); }
+    .q-nav-next { background: var(--primary); color: white; }
+    .q-nav-next:hover { background: var(--primary-dark); }
+
+    /* Test sidebar widgets */
+    .test-widget {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px;
+    }
+    .test-widget h4 { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+    .test-timer { font-size: 32px; font-weight: 800; text-align: center; color: var(--text); font-variant-numeric: tabular-nums; }
+    .test-score-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .tsm { text-align: center; padding: 10px; background: var(--bg); border-radius: 8px; }
+    .tsm .tsm-val { font-size: 20px; font-weight: 700; }
+    .tsm .tsm-label { font-size: 11px; color: var(--text-secondary); }
+    .question-dots {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .q-dot {
+      width: 28px; height: 28px; border-radius: 6px; display: flex;
+      align-items: center; justify-content: center; font-size: 11px;
+      font-weight: 600; background: var(--bg); color: var(--text-muted);
+    }
+    .q-dot.correct { background: var(--secondary-light); color: #166534; }
+    .q-dot.wrong { background: var(--error-light); color: #991B1B; }
+    .q-dot.current { background: var(--primary); color: white; }
+    .q-dot.flagged { background: var(--accent-light); color: #854D0E; }
+
+    /* ===== RESULTS SCREEN ===== */
+    .results-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .results-hero-card {
+      grid-column: 1 / 3;
+      background: var(--surface); border-radius: var(--radius);
+      padding: 40px; box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 40px;
+    }
+    .rh-score { text-align: center; flex-shrink: 0; }
+    .rh-score svg { transform: rotate(-90deg); }
+    .score-ring { width: 160px; height: 160px; position: relative; }
+    .score-ring .score-text {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); text-align: center;
+    }
+    .score-num { font-size: 44px; font-weight: 800; display: block; }
+    .score-label-text { font-size: 13px; color: var(--text-secondary); }
+    .rh-info { flex: 1; }
+    .rh-emoji { font-size: 48px; margin-bottom: 8px; }
+    .rh-title { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+    .rh-subtitle { font-size: 15px; color: var(--text-secondary); margin-bottom: 20px; }
+    .rh-stats { display: flex; gap: 24px; }
+    .rh-stat { text-align: center; }
+    .rh-stat-val { font-size: 24px; font-weight: 700; }
+    .rh-stat-label { font-size: 12px; color: var(--text-secondary); }
+    .rh-xp {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; background: var(--primary-light); border-radius: 20px;
+      font-size: 14px; font-weight: 700; color: var(--primary-dark); margin-top: 16px;
+    }
+
+    .breakdown-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 28px; box-shadow: var(--shadow);
+    }
+    .breakdown-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+    .cat-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .cat-name { font-size: 13px; font-weight: 500; width: 110px; flex-shrink: 0; }
+    .cat-bar { flex: 1; height: 10px; background: var(--border); border-radius: 5px; }
+    .cat-bar-fill { height: 100%; border-radius: 5px; }
+    .cat-score { font-size: 14px; font-weight: 700; width: 44px; text-align: right; }
+
+    .advice-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 28px; box-shadow: var(--shadow);
+    }
+    .advice-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+    .advice-item {
+      padding: 14px 16px; background: var(--accent-light); border-radius: var(--radius-xs);
+      border-left: 4px solid var(--accent); margin-bottom: 12px;
+    }
+    .advice-item h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .advice-item p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .results-actions {
+      grid-column: 1 / 3;
+      display: flex; gap: 12px; justify-content: center;
+    }
+    .results-actions .btn {
+      display: inline-flex; width: auto; padding: 14px 28px;
+      border-radius: var(--radius-xs); font-size: 15px; font-weight: 600;
+      border: none; cursor: pointer; font-family: inherit; gap: 8px;
+      align-items: center; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1.5px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ===== PAYWALL SCREEN ===== */
+    .paywall-layout { max-width: 700px; margin: 0 auto; }
+    .paywall-hero { text-align: center; margin-bottom: 32px; }
+    .paywall-hero .pw-icon { font-size: 56px; margin-bottom: 12px; }
+    .paywall-hero h2 { font-size: 28px; font-weight: 800; margin-bottom: 6px; }
+    .paywall-hero p { font-size: 15px; color: var(--text-secondary); }
+    .paywall-social { text-align: center; font-size: 14px; color: var(--text-secondary); margin-bottom: 28px; }
+    .paywall-social strong { color: var(--text); }
+    .plans-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+    .plan-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 28px; box-shadow: var(--shadow); border: 2px solid var(--border);
+      cursor: pointer; transition: all 0.2s; position: relative;
+    }
+    .plan-card:hover { border-color: var(--primary); }
+    .plan-card.recommended { border-color: var(--primary); background: #F8FAFF; }
+    .plan-badge {
+      position: absolute; top: -11px; right: 16px;
+      padding: 4px 12px; background: var(--primary); color: white;
+      font-size: 11px; font-weight: 700; border-radius: 8px;
+    }
+    .plan-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .plan-price { margin-bottom: 16px; }
+    .plan-price .price { font-size: 32px; font-weight: 800; }
+    .plan-price .period { font-size: 14px; color: var(--text-secondary); }
+    .plan-features { list-style: none; }
+    .plan-features li {
+      font-size: 14px; padding: 6px 0; display: flex;
+      align-items: center; gap: 8px; color: var(--text-secondary);
+    }
+    .plan-features li::before { content: '✓'; color: var(--secondary); font-weight: 700; }
+    .paywall-cta { text-align: center; }
+    .paywall-cta .btn-primary {
+      display: inline-flex; padding: 16px 40px; border-radius: var(--radius-sm);
+      font-size: 16px; font-weight: 700; border: none; cursor: pointer;
+      font-family: inherit; background: var(--primary); color: white;
+    }
+    .paywall-cta p { font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+    .paywall-skip { text-align: center; margin-top: 16px; font-size: 14px; color: var(--text-muted); cursor: pointer; }
+
+    /* ===== BADGES SCREEN ===== */
+    .badges-layout { max-width: 800px; }
+    .badges-xp {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 24px; box-shadow: var(--shadow); margin-bottom: 24px;
+    }
+    .badges-grid-wrap {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 24px; box-shadow: var(--shadow); margin-bottom: 24px;
+    }
+    .badges-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .badge-item {
+      text-align: center; padding: 20px 12px;
+      background: var(--bg); border-radius: var(--radius-sm);
+      transition: transform 0.15s;
+    }
+    .badge-item:hover { transform: translateY(-2px); }
+    .badge-item.locked { opacity: 0.35; }
+    .badge-item .badge-icon { font-size: 40px; margin-bottom: 8px; }
+    .badge-item .badge-name { font-size: 13px; font-weight: 600; }
+    .badge-item .badge-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+    .challenges-wrap {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 24px; box-shadow: var(--shadow);
+    }
+    .challenges-wrap h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+    .challenge-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px; background: var(--bg); border-radius: var(--radius-xs);
+      margin-bottom: 10px;
+    }
+    .ch-icon { font-size: 26px; }
+    .ch-info { flex: 1; }
+    .ch-name { font-size: 14px; font-weight: 600; }
+    .ch-desc { font-size: 12px; color: var(--text-secondary); }
+    .ch-progress { text-align: right; }
+    .ch-count { font-size: 15px; font-weight: 700; color: var(--primary); }
+    .ch-bar { width: 80px; height: 6px; background: var(--border); border-radius: 3px; margin-top: 4px; }
+    .ch-bar-fill { height: 100%; border-radius: 3px; background: var(--primary); }
+
+    /* ===== CONFETTI ===== */
+    .confetti-container {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 9999;
+    }
+    .confetti-piece {
+      position: absolute; top: -20px;
+      animation: confettiFall 3.5s ease-out forwards;
+    }
+    @keyframes confettiFall {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Prototype nav -->
+<div class="proto-bar">
+  <span>PROTOTYPE</span>
+  <button class="proto-pill active" onclick="showScreen('dashboard')">Dashboard</button>
+  <button class="proto-pill" onclick="showScreen('test')">Practice Test</button>
+  <button class="proto-pill" onclick="showScreen('results')">Results</button>
+  <button class="proto-pill" onclick="showScreen('paywall')">Paywall</button>
+  <button class="proto-pill" onclick="showScreen('badges')">Badges</button>
+</div>
+
+<!-- Browser chrome -->
+<div class="browser-chrome">
+  <div class="browser-dots">
+    <span class="dot-red"></span>
+    <span class="dot-yellow"></span>
+    <span class="dot-green"></span>
+  </div>
+  <div class="browser-nav">
+    <button>←</button>
+    <button>→</button>
+    <button>↻</button>
+  </div>
+  <div class="browser-url">
+    <span class="lock">🔒</span>
+    <span class="url-domain">passdmv.us</span>
+    <span class="url-text" id="urlPath">/dashboard</span>
+  </div>
+</div>
+
+<div class="app-container">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <h1>Pass<span>DMV</span></h1>
+      <p>Practice. Pass. Drive.</p>
+    </div>
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">🧑</div>
+      <div class="sidebar-user-info">
+        <h4>Alex Johnson</h4>
+        <p>California · Free plan</p>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Main</div>
+      <button class="sidebar-nav-item active" id="nav-dashboard" onclick="showScreen('dashboard')">
+        <span class="nav-icon">🏠</span> Dashboard
+      </button>
+      <button class="sidebar-nav-item" id="nav-test" onclick="showScreen('test')">
+        <span class="nav-icon">📝</span> Practice Test
+      </button>
+      <button class="sidebar-nav-item" id="nav-results" onclick="showScreen('results')">
+        <span class="nav-icon">📊</span> My Results
+      </button>
+      <button class="sidebar-nav-item" id="nav-badges" onclick="showScreen('badges')">
+        <span class="nav-icon">🏆</span> Achievements
+        <span class="nav-badge" style="background:var(--accent-light);color:#854D0E;">3</span>
+      </button>
+
+      <div class="sidebar-section-label">Practice</div>
+      <button class="sidebar-nav-item" onclick="showScreen('test')">
+        <span class="nav-icon">⚡</span> Daily Challenge
+        <span class="nav-badge" style="background:var(--secondary-light);color:#166534;">NEW</span>
+      </button>
+      <button class="sidebar-nav-item" onclick="showScreen('test')">
+        <span class="nav-icon">🎯</span> Weak Spots
+      </button>
+      <button class="sidebar-nav-item" onclick="showScreen('test')">
+        <span class="nav-icon">🏷️</span> Topic Drill
+      </button>
+
+      <div class="sidebar-section-label">Other</div>
+      <button class="sidebar-nav-item">
+        <span class="nav-icon">⚙️</span> Settings
+      </button>
+    </nav>
+    <div class="sidebar-upgrade">
+      <div class="sidebar-upgrade-card">
+        <p>Unlock unlimited tests & all features</p>
+        <button onclick="showScreen('paywall')">Upgrade →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main-content">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="screen active" id="screen-dashboard">
+      <div class="topbar">
+        <h1>Hey Alex! 👋</h1>
+        <div class="topbar-right">
+          <div class="topbar-streak">🔥 5-day streak</div>
+          <div class="topbar-notif">🔔<div class="notif-dot"></div></div>
+        </div>
+      </div>
+      <div class="dash-grid">
+        <!-- Readiness -->
+        <div class="card readiness-card">
+          <div class="card-header"><h3>Test Readiness</h3></div>
+          <div class="readiness-ring">
+            <svg width="160" height="160">
+              <circle cx="80" cy="80" r="68" fill="none" stroke="#E2E8F0" stroke-width="12"/>
+              <circle cx="80" cy="80" r="68" fill="none" stroke="#3B82F6" stroke-width="12"
+                      stroke-dasharray="427" stroke-dashoffset="128" stroke-linecap="round"/>
+            </svg>
+            <div class="ring-text">
+              <span class="ring-percent">70%</span>
+              <span class="ring-label">Ready</span>
+            </div>
+          </div>
+          <div class="readiness-status">Need <strong>83%</strong> to pass in CA</div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="card actions-card">
+          <div class="card-header"><h3>Quick Actions</h3></div>
+          <div class="actions-grid">
+            <button class="action-btn ab-blue" onclick="showScreen('test')">
+              <div class="act-icon">📝</div>
+              <span class="act-label">Full Practice Test</span>
+              <span class="act-sub">46 questions · CA</span>
+            </button>
+            <button class="action-btn ab-green" onclick="showScreen('test')">
+              <div class="act-icon">⚡</div>
+              <span class="act-label">Daily Challenge</span>
+              <span class="act-sub">5 new questions</span>
+            </button>
+            <button class="action-btn ab-red" onclick="showScreen('paywall')">
+              <div class="act-icon">🎯</div>
+              <span class="act-label">Weak Spots</span>
+              <span class="act-sub">3 topics to fix</span>
+            </button>
+            <button class="action-btn ab-yellow" onclick="showScreen('test')">
+              <div class="act-icon">🏷️</div>
+              <span class="act-label">Topic Drill</span>
+              <span class="act-sub">Pick a category</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- XP -->
+        <div class="card xp-card">
+          <div class="xp-header">
+            <span class="xp-level"><span class="level-badge">Lvl 2</span> Student Driver</span>
+            <span class="xp-points">340 / 500 XP</span>
+          </div>
+          <div class="xp-track"><div class="xp-fill" style="width:68%"></div></div>
+          <div class="xp-milestones">
+            <span class="xp-milestone">Learner (0)</span>
+            <span class="xp-milestone current">Student (200)</span>
+            <span class="xp-milestone">Road Warrior (500)</span>
+            <span class="xp-milestone">Test Ace (1000)</span>
+          </div>
+        </div>
+
+        <!-- Weak topics -->
+        <div class="card weak-card">
+          <div class="card-header"><h3>Weak Topics</h3><a onclick="showScreen('paywall')">Practice All →</a></div>
+          <div class="weak-topics">
+            <div class="weak-topic">
+              <span class="wt-icon">🚦</span>
+              <div class="wt-info">
+                <div class="wt-name">Right of Way</div>
+                <div class="wt-score">45% accuracy · 9/20 correct</div>
+                <div class="wt-bar"><div class="wt-bar-fill" style="width:45%;background:var(--error)"></div></div>
+              </div>
+              <button class="wt-action" onclick="showScreen('paywall')">Practice</button>
+            </div>
+            <div class="weak-topic">
+              <span class="wt-icon">🅿️</span>
+              <div class="wt-info">
+                <div class="wt-name">Parking Rules</div>
+                <div class="wt-score">52% accuracy · 13/25 correct</div>
+                <div class="wt-bar"><div class="wt-bar-fill" style="width:52%;background:var(--accent)"></div></div>
+              </div>
+              <button class="wt-action" onclick="showScreen('test')">Practice</button>
+            </div>
+            <div class="weak-topic">
+              <span class="wt-icon">🍺</span>
+              <div class="wt-info">
+                <div class="wt-name">DUI / DWI Laws</div>
+                <div class="wt-score">58% accuracy · 7/12 correct</div>
+                <div class="wt-bar"><div class="wt-bar-fill" style="width:58%;background:var(--accent)"></div></div>
+              </div>
+              <button class="wt-action" onclick="showScreen('test')">Practice</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card" style="grid-column: 3;">
+          <div class="card-header"><h3>Recent Activity</h3></div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg);border-radius:8px;">
+              <span style="font-size:20px">📝</span>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600">Full Practice Test</div>
+                <div style="font-size:11px;color:var(--text-secondary)">76% · 35/46 correct</div>
+              </div>
+              <span style="font-size:11px;color:var(--text-muted)">2h ago</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg);border-radius:8px;">
+              <span style="font-size:20px">⚡</span>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600">Daily Challenge</div>
+                <div style="font-size:11px;color:var(--text-secondary)">80% · 4/5 correct</div>
+              </div>
+              <span style="font-size:11px;color:var(--text-muted)">Yesterday</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg);border-radius:8px;">
+              <span style="font-size:20px">🏷️</span>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600">Topic Drill: Road Signs</div>
+                <div style="font-size:11px;color:var(--text-secondary)">90% · 9/10 correct</div>
+              </div>
+              <span style="font-size:11px;color:var(--text-muted)">2 days ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PRACTICE TEST ===== -->
+    <div class="screen" id="screen-test">
+      <div class="topbar">
+        <h1>Practice Test</h1>
+        <div class="topbar-right">
+          <div class="topbar-streak">🔥 5-day streak</div>
+        </div>
+      </div>
+      <div class="test-layout">
+        <div class="test-main">
+          <div class="test-progress">
+            <div class="test-progress-bar"><div class="test-progress-fill" style="width:28%"></div></div>
+            <div class="test-progress-text">
+              <span>Question 13 of 46</span>
+              <span>28% complete</span>
+            </div>
+          </div>
+          <div class="question-card">
+            <div class="q-meta">
+              <span class="q-num">Question 13</span>
+              <span class="q-category">Road Signs</span>
+            </div>
+            <div class="q-image">🛑</div>
+            <div class="q-text">What must you do when you see this sign at an intersection?</div>
+            <div class="q-options" id="desktopOptions">
+              <button class="q-option" onclick="selectDesktopAnswer(this, false)">
+                <span class="q-letter">A</span>
+                Slow down and proceed with caution
+              </button>
+              <button class="q-option" onclick="selectDesktopAnswer(this, true)">
+                <span class="q-letter">B</span>
+                Come to a complete stop, check all directions, then proceed
+              </button>
+              <button class="q-option" onclick="selectDesktopAnswer(this, false)">
+                <span class="q-letter">C</span>
+                Stop only if other vehicles are present at the intersection
+              </button>
+              <button class="q-option" onclick="selectDesktopAnswer(this, false)">
+                <span class="q-letter">D</span>
+                Honk your horn and proceed through the intersection
+              </button>
+            </div>
+            <div class="q-explanation" id="desktopExplanation">
+              ✅ <strong>Correct!</strong> A stop sign requires you to come to a complete stop. Look left, right, and left again before proceeding. Never just slow down or roll through a stop sign.
+            </div>
+            <div class="q-nav">
+              <button class="q-nav-btn q-nav-prev">← Previous</button>
+              <button class="q-nav-btn q-nav-next" onclick="showScreen('results')">Next →</button>
+            </div>
+          </div>
+        </div>
+        <div class="test-sidebar">
+          <div class="test-widget">
+            <h4>⏱️ Time Elapsed</h4>
+            <div class="test-timer">08:42</div>
+          </div>
+          <div class="test-widget">
+            <h4>📊 Progress</h4>
+            <div class="test-score-mini">
+              <div class="tsm">
+                <div class="tsm-val" style="color:var(--secondary)">10</div>
+                <div class="tsm-label">Correct</div>
+              </div>
+              <div class="tsm">
+                <div class="tsm-val" style="color:var(--error)">2</div>
+                <div class="tsm-label">Wrong</div>
+              </div>
+            </div>
+          </div>
+          <div class="test-widget">
+            <h4>Questions</h4>
+            <div class="question-dots">
+              <div class="q-dot correct">1</div>
+              <div class="q-dot correct">2</div>
+              <div class="q-dot wrong">3</div>
+              <div class="q-dot correct">4</div>
+              <div class="q-dot correct">5</div>
+              <div class="q-dot correct">6</div>
+              <div class="q-dot wrong">7</div>
+              <div class="q-dot correct">8</div>
+              <div class="q-dot correct">9</div>
+              <div class="q-dot correct">10</div>
+              <div class="q-dot correct">11</div>
+              <div class="q-dot flagged">12</div>
+              <div class="q-dot current">13</div>
+              <div class="q-dot">14</div>
+              <div class="q-dot">15</div>
+              <div class="q-dot">16</div>
+              <div class="q-dot">17</div>
+              <div class="q-dot">18</div>
+              <div class="q-dot">19</div>
+              <div class="q-dot">20</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RESULTS ===== -->
+    <div class="screen" id="screen-results">
+      <div class="confetti-container" id="confetti"></div>
+      <div class="topbar"><h1>Test Results</h1></div>
+      <div class="results-layout">
+        <div class="results-hero-card">
+          <div class="rh-score">
+            <div class="score-ring">
+              <svg width="160" height="160">
+                <circle cx="80" cy="80" r="68" fill="none" stroke="#E2E8F0" stroke-width="12"/>
+                <circle cx="80" cy="80" r="68" fill="none" stroke="#3B82F6" stroke-width="12"
+                        stroke-dasharray="427" stroke-dashoffset="102" stroke-linecap="round"/>
+              </svg>
+              <div class="score-text">
+                <span class="score-num">76%</span>
+                <span class="score-label-text">Score</span>
+              </div>
+            </div>
+          </div>
+          <div class="rh-info">
+            <div class="rh-emoji">🎉</div>
+            <div class="rh-title">Great Effort!</div>
+            <div class="rh-subtitle">You're getting closer to the 83% passing score</div>
+            <div class="rh-stats">
+              <div class="rh-stat">
+                <div class="rh-stat-val" style="color:var(--secondary)">35</div>
+                <div class="rh-stat-label">Correct</div>
+              </div>
+              <div class="rh-stat">
+                <div class="rh-stat-val" style="color:var(--error)">11</div>
+                <div class="rh-stat-label">Wrong</div>
+              </div>
+              <div class="rh-stat">
+                <div class="rh-stat-val">12:34</div>
+                <div class="rh-stat-label">Time</div>
+              </div>
+            </div>
+            <div class="rh-xp">⭐ +85 XP earned!</div>
+          </div>
+        </div>
+
+        <div class="breakdown-card">
+          <h3>Category Breakdown</h3>
+          <div class="cat-row">
+            <span class="cat-name">Road Signs</span>
+            <div class="cat-bar"><div class="cat-bar-fill" style="width:90%;background:var(--secondary)"></div></div>
+            <span class="cat-score" style="color:var(--secondary)">90%</span>
+          </div>
+          <div class="cat-row">
+            <span class="cat-name">Speed Limits</span>
+            <div class="cat-bar"><div class="cat-bar-fill" style="width:85%;background:var(--secondary)"></div></div>
+            <span class="cat-score" style="color:var(--secondary)">85%</span>
+          </div>
+          <div class="cat-row">
+            <span class="cat-name">Signals</span>
+            <div class="cat-bar"><div class="cat-bar-fill" style="width:75%;background:var(--primary)"></div></div>
+            <span class="cat-score" style="color:var(--primary)">75%</span>
+          </div>
+          <div class="cat-row">
+            <span class="cat-name">Parking</span>
+            <div class="cat-bar"><div class="cat-bar-fill" style="width:55%;background:var(--accent)"></div></div>
+            <span class="cat-score" style="color:var(--accent)">55%</span>
+          </div>
+          <div class="cat-row">
+            <span class="cat-name">Right of Way</span>
+            <div class="cat-bar"><div class="cat-bar-fill" style="width:40%;background:var(--error)"></div></div>
+            <span class="cat-score" style="color:var(--error)">40%</span>
+          </div>
+          <div class="cat-row">
+            <span class="cat-name">DUI / DWI</span>
+            <div class="cat-bar"><div class="cat-bar-fill" style="width:50%;background:var(--accent)"></div></div>
+            <span class="cat-score" style="color:var(--accent)">50%</span>
+          </div>
+        </div>
+
+        <div class="advice-card">
+          <h3>💡 Personalized Advice</h3>
+          <div class="advice-item">
+            <h4>Focus: Right of Way</h4>
+            <p>You missed 4 out of 6 questions. Review who has priority at uncontrolled intersections and when to yield.</p>
+          </div>
+          <div class="advice-item">
+            <h4>Focus: Parking Rules</h4>
+            <p>You missed 3 out of 5 questions. Study curb color meanings and distance rules near fire hydrants and crosswalks.</p>
+          </div>
+          <div class="advice-item" style="background:var(--secondary-light);border-color:var(--secondary);">
+            <h4>💪 Strength: Road Signs</h4>
+            <p>Excellent! You got 90% on sign recognition. Keep it up!</p>
+          </div>
+        </div>
+
+        <div class="results-actions">
+          <button class="btn btn-primary" onclick="showScreen('paywall')">🎯 Practice Weak Spots</button>
+          <button class="btn btn-secondary" onclick="showScreen('test')">📝 Try Another Test</button>
+          <button class="btn btn-secondary" onclick="showScreen('dashboard')">🏠 Dashboard</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAYWALL ===== -->
+    <div class="screen" id="screen-paywall">
+      <div class="paywall-layout">
+        <div class="paywall-hero">
+          <div class="pw-icon">🚀</div>
+          <h2>You're improving fast!</h2>
+          <p>Unlock unlimited practice to pass your DMV test with confidence</p>
+        </div>
+        <div class="paywall-social"><strong>47,000+ teens</strong> passed their test with PassDMV</div>
+        <div style="text-align:center;margin-bottom:24px;">
+          <div style="display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--secondary-light);border:2px solid var(--secondary);border-radius:24px;font-size:14px;font-weight:700;color:#166534;">
+            <span style="font-size:18px;">✓</span> Pass on your first try, or get your money back
+          </div>
+        </div>
+        <div class="plans-grid">
+          <div class="plan-card" onclick="this.classList.toggle('recommended');this.nextElementSibling.classList.remove('recommended')">
+            <div class="plan-name">Weekly Pass</div>
+            <div class="plan-price">
+              <span class="price">$2.99</span>
+              <span class="period">/week</span>
+            </div>
+            <ul class="plan-features">
+              <li>Unlimited practice tests</li>
+              <li>All practice modes</li>
+              <li>No ads</li>
+              <li>Streak freeze (1/week)</li>
+            </ul>
+          </div>
+          <div class="plan-card recommended">
+            <div class="plan-badge">BEST VALUE</div>
+            <div class="plan-name">Unlimited Access</div>
+            <div class="plan-price">
+              <span class="price">$29.99</span>
+              <span class="period">one-time</span>
+            </div>
+            <ul class="plan-features">
+              <li>Everything in Weekly</li>
+              <li>Lifetime access — pay once</li>
+              <li>Priority support</li>
+              <li>Early access to new features</li>
+            </ul>
+          </div>
+        </div>
+        <div class="paywall-cta">
+          <button class="btn-primary" onclick="showScreen('dashboard')">Try 3 Days Free →</button>
+          <p>Cancel anytime. No questions asked.</p>
+        </div>
+        <div class="paywall-skip" onclick="showScreen('dashboard')">Maybe later</div>
+      </div>
+    </div>
+
+    <!-- ===== BADGES ===== -->
+    <div class="screen" id="screen-badges">
+      <div class="topbar"><h1>Achievements</h1></div>
+      <div class="badges-layout">
+        <div class="badges-xp">
+          <div class="xp-header">
+            <span class="xp-level"><span class="level-badge">Lvl 2</span> Student Driver</span>
+            <span class="xp-points">340 / 500 XP to Level 3</span>
+          </div>
+          <div class="xp-track"><div class="xp-fill" style="width:68%"></div></div>
+        </div>
+        <div class="badges-grid-wrap">
+          <div class="card-header"><h3>Badges</h3><a>3 / 12 earned</a></div>
+          <div class="badges-grid">
+            <div class="badge-item"><div class="badge-icon">🌟</div><div class="badge-name">First Test</div><div class="badge-desc">Complete a test</div></div>
+            <div class="badge-item"><div class="badge-icon">🔥</div><div class="badge-name">On Fire</div><div class="badge-desc">5-day streak</div></div>
+            <div class="badge-item"><div class="badge-icon">🛑</div><div class="badge-name">Sign Master</div><div class="badge-desc">90% on signs</div></div>
+            <div class="badge-item locked"><div class="badge-icon">💯</div><div class="badge-name">Perfect Score</div><div class="badge-desc">100% on a test</div></div>
+            <div class="badge-item locked"><div class="badge-icon">⚡</div><div class="badge-name">Speed Demon</div><div class="badge-desc">Under 5 min quiz</div></div>
+            <div class="badge-item locked"><div class="badge-icon">🔄</div><div class="badge-name">Comeback Kid</div><div class="badge-desc">Improve 20%+</div></div>
+            <div class="badge-item locked"><div class="badge-icon">📅</div><div class="badge-name">30 Day Pro</div><div class="badge-desc">30-day streak</div></div>
+            <div class="badge-item locked"><div class="badge-icon">🧠</div><div class="badge-name">Know It All</div><div class="badge-desc">90%+ all topics</div></div>
+          </div>
+        </div>
+        <div class="challenges-wrap">
+          <h3>Weekly Challenges</h3>
+          <div class="challenge-card">
+            <span class="ch-icon">🛑</span>
+            <div class="ch-info"><div class="ch-name">Sign Spotter</div><div class="ch-desc">Answer 50 road sign questions this week</div></div>
+            <div class="ch-progress"><div class="ch-count">32/50</div><div class="ch-bar"><div class="ch-bar-fill" style="width:64%"></div></div></div>
+          </div>
+          <div class="challenge-card">
+            <span class="ch-icon">📝</span>
+            <div class="ch-info"><div class="ch-name">Test Marathoner</div><div class="ch-desc">Complete 5 full practice tests</div></div>
+            <div class="ch-progress"><div class="ch-count">2/5</div><div class="ch-bar"><div class="ch-bar-fill" style="width:40%"></div></div></div>
+          </div>
+          <div class="challenge-card">
+            <span class="ch-icon">🎯</span>
+            <div class="ch-info"><div class="ch-name">Weakness Crusher</div><div class="ch-desc">Practice 3 weak topics this week</div></div>
+            <div class="ch-progress"><div class="ch-count">1/3</div><div class="ch-bar"><div class="ch-bar-fill" style="width:33%"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const urlPaths = {
+    dashboard: '/dashboard',
+    test: '/practice/california/full-test',
+    results: '/results/test-47',
+    paywall: '/upgrade',
+    badges: '/achievements'
+  };
+
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+    document.querySelectorAll('.proto-pill').forEach(b => b.classList.remove('active'));
+    const pills = document.querySelectorAll('.proto-pill');
+    const map = { dashboard:0, test:1, results:2, paywall:3, badges:4 };
+    if (map[name] !== undefined) pills[map[name]].classList.add('active');
+
+    document.querySelectorAll('.sidebar-nav-item').forEach(n => n.classList.remove('active'));
+    const navEl = document.getElementById('nav-' + name);
+    if (navEl) navEl.classList.add('active');
+
+    document.getElementById('urlPath').textContent = urlPaths[name] || '/' + name;
+
+    if (name === 'results') spawnConfetti();
+  }
+
+  function selectDesktopAnswer(el, isCorrect) {
+    document.querySelectorAll('#desktopOptions .q-option').forEach(o => {
+      o.classList.remove('selected', 'correct', 'wrong');
+    });
+    el.classList.add('selected');
+    setTimeout(() => {
+      if (isCorrect) {
+        el.classList.add('correct');
+      } else {
+        el.classList.add('wrong');
+        document.querySelectorAll('#desktopOptions .q-option')[1].classList.add('correct');
+      }
+      document.getElementById('desktopExplanation').classList.add('visible');
+    }, 400);
+  }
+
+  function spawnConfetti() {
+    const container = document.getElementById('confetti');
+    container.innerHTML = '';
+    const colors = ['#3B82F6', '#22C55E', '#FACC15', '#EF4444', '#A78BFA', '#F472B6'];
+    for (let i = 0; i < 60; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = Math.random() * 100 + '%';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.animationDelay = Math.random() * 2 + 's';
+      piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      piece.style.width = (Math.random() * 10 + 6) + 'px';
+      piece.style.height = (Math.random() * 10 + 6) + 'px';
+      container.appendChild(piece);
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PassDMV Question Bank - State File",
+  "description": "Schema for a single state's question bank file",
+  "type": "object",
+  "required": ["state", "stateCode", "metadata", "questions"],
+  "properties": {
+    "state": {
+      "type": "string",
+      "description": "Full state name",
+      "examples": ["California", "Texas", "Florida"]
+    },
+    "stateCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$",
+      "description": "Two-letter state code",
+      "examples": ["CA", "TX", "FL"]
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["testQuestionCount", "passingScore", "timeLimit", "attemptsAllowed"],
+      "properties": {
+        "testQuestionCount": {
+          "type": "integer",
+          "description": "Number of questions on the real DMV test"
+        },
+        "passingScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Passing score percentage"
+        },
+        "timeLimit": {
+          "type": ["integer", "null"],
+          "description": "Time limit in minutes, null if no limit"
+        },
+        "attemptsAllowed": {
+          "type": "integer",
+          "description": "Number of attempts allowed before waiting period"
+        },
+        "waitPeriodDays": {
+          "type": ["integer", "null"],
+          "description": "Days to wait after failing all attempts"
+        },
+        "minimumAge": {
+          "type": "integer",
+          "description": "Minimum age for permit in this state"
+        },
+        "lastVerified": {
+          "type": "string",
+          "format": "date",
+          "description": "Date this state's info was last verified against official sources"
+        },
+        "officialHandbookUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to the official state driver handbook"
+        }
+      }
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/question"
+      },
+      "minItems": 1
+    }
+  },
+  "definitions": {
+    "question": {
+      "type": "object",
+      "required": ["id", "state", "category", "difficulty", "type", "question", "options", "correctAnswer", "explanation"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}-[a-z-]+-\\d{3}$",
+          "description": "Unique question ID: {STATE}-{category}-{number}",
+          "examples": ["CA-road-signs-001", "TX-right-of-way-015"]
+        },
+        "state": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "road-signs",
+            "right-of-way",
+            "parking",
+            "speed-limits",
+            "traffic-signals",
+            "lane-usage",
+            "dui-dwi",
+            "emergency-vehicles",
+            "school-zones",
+            "insurance-registration",
+            "general-knowledge"
+          ]
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": ["easy", "medium", "hard"]
+        },
+        "type": {
+          "type": "string",
+          "enum": ["multiple_choice", "true_false", "image_based"]
+        },
+        "question": {
+          "type": "string",
+          "minLength": 10,
+          "description": "The question text"
+        },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "type": "string"
+          },
+          "description": "Answer options (2 for true/false, 4 for multiple choice)"
+        },
+        "correctAnswer": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "Zero-based index of the correct option"
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Explanation of why the answer is correct"
+        },
+        "imageUrl": {
+          "type": ["string", "null"],
+          "description": "Relative path to image asset (for signs/signals)"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Additional tags for search and filtering"
+        },
+        "source": {
+          "type": "string",
+          "description": "Reference to handbook chapter/section"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date",
+          "description": "Date this question was last reviewed"
+        }
+      }
+    }
+  }
+}

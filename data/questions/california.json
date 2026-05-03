@@ -1,0 +1,412 @@
+{
+  "state": "California",
+  "stateCode": "CA",
+  "metadata": {
+    "testQuestionCount": 46,
+    "passingScore": 83,
+    "timeLimit": null,
+    "attemptsAllowed": 3,
+    "waitPeriodDays": null,
+    "minimumAge": 15,
+    "lastVerified": "2026-04-15",
+    "officialHandbookUrl": "https://www.dmv.ca.gov/portal/handbook/california-driver-handbook/"
+  },
+  "questions": [
+    {
+      "id": "CA-road-signs-001",
+      "state": "CA",
+      "category": "road-signs",
+      "difficulty": "easy",
+      "type": "image_based",
+      "question": "What must you do when you see a stop sign?",
+      "options": [
+        "Slow down and proceed with caution",
+        "Come to a complete stop, check all directions, then proceed",
+        "Stop only if other vehicles are present",
+        "Honk and proceed through the intersection"
+      ],
+      "correctAnswer": 1,
+      "explanation": "A stop sign requires you to come to a complete stop at the marked limit line or before entering the crosswalk. Look left, right, and left again before proceeding. You must stop even if no other vehicles are present.",
+      "imageUrl": "/images/signs/stop-sign.svg",
+      "tags": ["stop-sign", "intersection", "basic"],
+      "source": "CA Driver Handbook, Chapter 5 - Signs",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-road-signs-002",
+      "state": "CA",
+      "category": "road-signs",
+      "difficulty": "easy",
+      "type": "image_based",
+      "question": "What does a yellow diamond-shaped sign indicate?",
+      "options": [
+        "Regulatory information you must follow",
+        "A warning about road conditions or hazards ahead",
+        "Construction zone ahead",
+        "School zone ahead"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Yellow diamond-shaped signs are warning signs. They alert you to possible hazards or changes in road conditions ahead. They advise caution but are not regulatory (you don't get a ticket for ignoring them, but you should always heed them).",
+      "imageUrl": "/images/signs/yellow-diamond.svg",
+      "tags": ["warning-sign", "diamond", "basic"],
+      "source": "CA Driver Handbook, Chapter 5 - Signs",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-road-signs-003",
+      "state": "CA",
+      "category": "road-signs",
+      "difficulty": "medium",
+      "type": "image_based",
+      "question": "What does an octagonal (eight-sided) red sign mean?",
+      "options": [
+        "Yield to oncoming traffic",
+        "No entry",
+        "Stop completely before proceeding",
+        "Road closed ahead"
+      ],
+      "correctAnswer": 2,
+      "explanation": "The octagonal shape is used exclusively for stop signs. When you see this shape, you must come to a complete stop. This shape is designed to be recognizable even if the sign is damaged or covered in snow.",
+      "imageUrl": "/images/signs/octagon-shape.svg",
+      "tags": ["stop-sign", "shape-recognition"],
+      "source": "CA Driver Handbook, Chapter 5 - Signs",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-right-of-way-001",
+      "state": "CA",
+      "category": "right-of-way",
+      "difficulty": "medium",
+      "type": "multiple_choice",
+      "question": "At an uncontrolled intersection (no signs or signals), who has the right of way?",
+      "options": [
+        "The vehicle on the left",
+        "The vehicle going straight",
+        "The vehicle that arrives first; if arriving at the same time, yield to the vehicle on your right",
+        "The larger vehicle always has the right of way"
+      ],
+      "correctAnswer": 2,
+      "explanation": "At uncontrolled intersections, the vehicle that arrives first has the right of way. If two vehicles arrive at the same time, the driver on the left must yield to the driver on the right. Size of the vehicle does not determine right of way.",
+      "imageUrl": null,
+      "tags": ["uncontrolled-intersection", "yield"],
+      "source": "CA Driver Handbook, Chapter 7 - Right of Way",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-right-of-way-002",
+      "state": "CA",
+      "category": "right-of-way",
+      "difficulty": "easy",
+      "type": "multiple_choice",
+      "question": "When must you yield to pedestrians?",
+      "options": [
+        "Only at marked crosswalks",
+        "Only when they have a walk signal",
+        "At all marked and unmarked crosswalks",
+        "Only when they are on your side of the road"
+      ],
+      "correctAnswer": 2,
+      "explanation": "You must yield to pedestrians at all crosswalks, whether marked or unmarked. An unmarked crosswalk exists at every intersection where streets meet. Always be prepared to stop for pedestrians.",
+      "imageUrl": null,
+      "tags": ["pedestrian", "crosswalk", "yield"],
+      "source": "CA Driver Handbook, Chapter 7 - Right of Way",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-speed-limits-001",
+      "state": "CA",
+      "category": "speed-limits",
+      "difficulty": "easy",
+      "type": "multiple_choice",
+      "question": "What is the default speed limit in a residential area in California?",
+      "options": [
+        "20 mph",
+        "25 mph",
+        "30 mph",
+        "35 mph"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The default speed limit in California residential areas is 25 mph unless otherwise posted. Near schools and senior centers, the limit may be as low as 15-25 mph. Always watch for posted signs that may indicate a different limit.",
+      "imageUrl": null,
+      "tags": ["residential", "default-speed"],
+      "source": "CA Driver Handbook, Chapter 6 - Speed Limits",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-speed-limits-002",
+      "state": "CA",
+      "category": "speed-limits",
+      "difficulty": "medium",
+      "type": "multiple_choice",
+      "question": "What is the maximum speed limit on most California highways?",
+      "options": [
+        "55 mph",
+        "60 mph",
+        "65 mph",
+        "70 mph"
+      ],
+      "correctAnswer": 2,
+      "explanation": "The maximum speed limit on most California highways is 65 mph. Some rural freeways may be posted at 70 mph. Two-lane undivided highways have a maximum of 55 mph unless otherwise posted.",
+      "imageUrl": null,
+      "tags": ["highway", "maximum-speed"],
+      "source": "CA Driver Handbook, Chapter 6 - Speed Limits",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-parking-001",
+      "state": "CA",
+      "category": "parking",
+      "difficulty": "medium",
+      "type": "multiple_choice",
+      "question": "How far must you park from a fire hydrant in California?",
+      "options": [
+        "10 feet",
+        "15 feet",
+        "20 feet",
+        "25 feet"
+      ],
+      "correctAnswer": 1,
+      "explanation": "You must park at least 15 feet from a fire hydrant. This ensures fire trucks can access the hydrant quickly in an emergency. Parking too close can result in a ticket and your car being towed.",
+      "imageUrl": null,
+      "tags": ["fire-hydrant", "distance"],
+      "source": "CA Driver Handbook, Chapter 10 - Parking",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-parking-002",
+      "state": "CA",
+      "category": "parking",
+      "difficulty": "medium",
+      "type": "multiple_choice",
+      "question": "What does a red painted curb mean?",
+      "options": [
+        "Loading zone for passengers only",
+        "No stopping, standing, or parking at any time",
+        "Limited time parking",
+        "Parking for disabled persons only"
+      ],
+      "correctAnswer": 1,
+      "explanation": "A red curb means no stopping, standing, or parking at any time. This includes buses and taxis. Red zones are typically near fire hydrants, intersections, and bus stops where stopping would create a safety hazard.",
+      "imageUrl": null,
+      "tags": ["curb-color", "red-curb", "no-parking"],
+      "source": "CA Driver Handbook, Chapter 10 - Parking",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-dui-dwi-001",
+      "state": "CA",
+      "category": "dui-dwi",
+      "difficulty": "easy",
+      "type": "multiple_choice",
+      "question": "What is the legal blood alcohol concentration (BAC) limit for drivers 21 and over in California?",
+      "options": [
+        "0.05%",
+        "0.08%",
+        "0.10%",
+        "0.02%"
+      ],
+      "correctAnswer": 1,
+      "explanation": "The legal BAC limit for drivers 21 and over is 0.08%. For drivers under 21, California has a zero-tolerance law with a limit of 0.01%. Commercial drivers have a limit of 0.04%.",
+      "imageUrl": null,
+      "tags": ["bac", "alcohol", "legal-limit"],
+      "source": "CA Driver Handbook, Chapter 8 - Alcohol and Drugs",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-dui-dwi-002",
+      "state": "CA",
+      "category": "dui-dwi",
+      "difficulty": "medium",
+      "type": "true_false",
+      "question": "In California, you can refuse a chemical test (breath, blood, or urine) if pulled over for suspected DUI without any consequences.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correctAnswer": 1,
+      "explanation": "False. California has an 'implied consent' law. By driving on California roads, you automatically consent to chemical testing if lawfully arrested for DUI. Refusing a test results in automatic license suspension for 1 year and can be used against you in court.",
+      "imageUrl": null,
+      "tags": ["implied-consent", "chemical-test", "refusal"],
+      "source": "CA Driver Handbook, Chapter 8 - Alcohol and Drugs",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-traffic-signals-001",
+      "state": "CA",
+      "category": "traffic-signals",
+      "difficulty": "easy",
+      "type": "multiple_choice",
+      "question": "What should you do at a steady yellow traffic light?",
+      "options": [
+        "Speed up to get through the intersection",
+        "Stop immediately regardless of your position",
+        "Prepare to stop; the light is about to turn red",
+        "Yield to pedestrians only"
+      ],
+      "correctAnswer": 2,
+      "explanation": "A steady yellow light means the signal is about to turn red. You should prepare to stop. If you are already in the intersection or cannot stop safely, proceed with caution. Never speed up to try to beat a yellow light.",
+      "imageUrl": null,
+      "tags": ["yellow-light", "traffic-signal", "basic"],
+      "source": "CA Driver Handbook, Chapter 4 - Traffic Signals",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-traffic-signals-002",
+      "state": "CA",
+      "category": "traffic-signals",
+      "difficulty": "medium",
+      "type": "multiple_choice",
+      "question": "Can you turn right on a red light in California?",
+      "options": [
+        "No, never",
+        "Yes, after coming to a complete stop and checking that the way is clear",
+        "Yes, without stopping if no cars are coming",
+        "Only between 6 AM and 6 PM"
+      ],
+      "correctAnswer": 1,
+      "explanation": "In California, you may turn right on a red light after coming to a complete stop, unless a sign says 'No Turn on Red.' You must yield to pedestrians and cross traffic before turning. Always check for cyclists in the bike lane.",
+      "imageUrl": null,
+      "tags": ["right-on-red", "traffic-signal"],
+      "source": "CA Driver Handbook, Chapter 4 - Traffic Signals",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-lane-usage-001",
+      "state": "CA",
+      "category": "lane-usage",
+      "difficulty": "medium",
+      "type": "multiple_choice",
+      "question": "What do double solid yellow lines on the road mean?",
+      "options": [
+        "You may pass when it is safe",
+        "You may pass only on your side",
+        "No passing from either direction",
+        "Carpool lane boundary"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Double solid yellow lines mean no passing is allowed from either direction. You may not cross these lines to pass another vehicle. You may cross them only to make a left turn into or from a driveway or private road.",
+      "imageUrl": null,
+      "tags": ["lane-markings", "no-passing", "yellow-lines"],
+      "source": "CA Driver Handbook, Chapter 3 - Lane Markings",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-emergency-vehicles-001",
+      "state": "CA",
+      "category": "emergency-vehicles",
+      "difficulty": "easy",
+      "type": "multiple_choice",
+      "question": "What must you do when an emergency vehicle with flashing lights and siren approaches?",
+      "options": [
+        "Speed up to get out of the way",
+        "Stop immediately wherever you are",
+        "Pull over to the right edge of the road and stop",
+        "Continue driving but move to the left lane"
+      ],
+      "correctAnswer": 2,
+      "explanation": "When an emergency vehicle approaches with flashing lights and/or siren, you must pull over to the right edge of the road and stop. Stay stopped until the emergency vehicle has passed. If you're in an intersection, drive through it first, then pull over.",
+      "imageUrl": null,
+      "tags": ["emergency-vehicle", "pull-over", "siren"],
+      "source": "CA Driver Handbook, Chapter 7 - Emergency Vehicles",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-school-zones-001",
+      "state": "CA",
+      "category": "school-zones",
+      "difficulty": "easy",
+      "type": "multiple_choice",
+      "question": "What is the speed limit near a school when children are present?",
+      "options": [
+        "15 mph",
+        "20 mph",
+        "25 mph",
+        "30 mph"
+      ],
+      "correctAnswer": 2,
+      "explanation": "The speed limit in school zones is 25 mph when children are present, unless otherwise posted. Some school zones may have a lower posted limit of 15 or 20 mph. Always watch for crossing guards and children near schools.",
+      "imageUrl": null,
+      "tags": ["school-zone", "speed-limit", "children"],
+      "source": "CA Driver Handbook, Chapter 6 - Speed Limits",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-general-knowledge-001",
+      "state": "CA",
+      "category": "general-knowledge",
+      "difficulty": "easy",
+      "type": "multiple_choice",
+      "question": "What is the minimum following distance recommended in normal driving conditions?",
+      "options": [
+        "1 second",
+        "2 seconds",
+        "3 seconds",
+        "5 seconds"
+      ],
+      "correctAnswer": 2,
+      "explanation": "The recommended minimum following distance is 3 seconds in normal conditions. To measure this, watch the vehicle ahead pass a fixed point, then count 'one-thousand-one, one-thousand-two, one-thousand-three.' Increase this distance in bad weather, heavy traffic, or at high speeds.",
+      "imageUrl": null,
+      "tags": ["following-distance", "three-second-rule"],
+      "source": "CA Driver Handbook, Chapter 9 - Safe Driving",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-general-knowledge-002",
+      "state": "CA",
+      "category": "general-knowledge",
+      "difficulty": "medium",
+      "type": "multiple_choice",
+      "question": "When driving in fog, you should use:",
+      "options": [
+        "High beam headlights",
+        "Low beam headlights",
+        "Parking lights only",
+        "Hazard lights while driving"
+      ],
+      "correctAnswer": 1,
+      "explanation": "In fog, always use your low beam headlights. High beams reflect off the fog and reduce visibility even further. Low beams illuminate the road directly in front of you without the glare.",
+      "imageUrl": null,
+      "tags": ["fog", "headlights", "visibility"],
+      "source": "CA Driver Handbook, Chapter 9 - Safe Driving",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-insurance-registration-001",
+      "state": "CA",
+      "category": "insurance-registration",
+      "difficulty": "easy",
+      "type": "true_false",
+      "question": "In California, you are required to carry proof of car insurance at all times while driving.",
+      "options": [
+        "True",
+        "False"
+      ],
+      "correctAnswer": 0,
+      "explanation": "True. California law requires all drivers to carry proof of financial responsibility (insurance) while driving. If you're stopped and cannot provide proof, you may receive a citation. Electronic proof on your phone is acceptable.",
+      "imageUrl": null,
+      "tags": ["insurance", "proof", "requirement"],
+      "source": "CA Driver Handbook, Chapter 1 - Licensing",
+      "lastUpdated": "2026-04-15"
+    },
+    {
+      "id": "CA-road-signs-004",
+      "state": "CA",
+      "category": "road-signs",
+      "difficulty": "hard",
+      "type": "image_based",
+      "question": "What does a pennant-shaped (triangular) sign on the left side of the road indicate?",
+      "options": [
+        "School zone ahead",
+        "No passing zone",
+        "Yield ahead",
+        "Merge ahead"
+      ],
+      "correctAnswer": 1,
+      "explanation": "A pennant-shaped sign (triangle pointing right) is found on the left side of the road and marks the beginning of a no-passing zone. It supplements the solid yellow line markings on the road. This is the only sign shape that is placed on the left side.",
+      "imageUrl": "/images/signs/pennant-no-passing.svg",
+      "tags": ["pennant", "no-passing", "sign-shape"],
+      "source": "CA Driver Handbook, Chapter 5 - Signs",
+      "lastUpdated": "2026-04-15"
+    }
+  ]
+}
