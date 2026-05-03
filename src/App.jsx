@@ -27,6 +27,14 @@ posthog.init("phc_kxL4zQeTY4eJZ7AxybUx3JPTng9H6WAvLRWEAZyftofr", {
 });
 
 const SAMPLE_EXAM_SIZE = 30;
+const LARGE_CHAPTER_EXAM_SIZE = 60;
+const LARGE_CHAPTER_THRESHOLD = 200;
+
+function chapterExamSize(chapterId) {
+  return getChapterQuestionCount(chapterId) >= LARGE_CHAPTER_THRESHOLD
+    ? LARGE_CHAPTER_EXAM_SIZE
+    : SAMPLE_EXAM_SIZE;
+}
 
 function shuffle(arr) {
   const a = [...arr];
@@ -246,7 +254,7 @@ export default function MDAQuizApp() {
       question_pool: pool.length,
     });
     setLastQuizScope({ mode: "exam", chapterId, topics: null });
-    beginQuiz(pickSampleExam(pool, SAMPLE_EXAM_SIZE));
+    beginQuiz(pickSampleExam(pool, chapterExamSize(chapterId)));
   }, []);
 
   // תרגול נושאים נבחרים בתוך פרק
@@ -286,8 +294,10 @@ export default function MDAQuizApp() {
     if (topics && topics.length) pool = getQuestionsForTopics(topics);
     else if (chapterId) pool = getChapterQuestions(chapterId);
     else pool = QUESTIONS;
-    if (mode === "exam") beginQuiz(pickSampleExam(pool, SAMPLE_EXAM_SIZE));
-    else beginQuiz(shuffle(pool));
+    if (mode === "exam") {
+      const size = chapterId ? chapterExamSize(chapterId) : SAMPLE_EXAM_SIZE;
+      beginQuiz(pickSampleExam(pool, size));
+    } else beginQuiz(shuffle(pool));
   }, [lastQuizScope]);
 
   const handleSelect = (idx) => {
@@ -1777,7 +1787,7 @@ export default function MDAQuizApp() {
                   onClick={() => startChapterExam(activeChapter.id)}
                   disabled={getChapterQuestionCount(activeChapter.id) === 0}
                 >
-                  מבחן על הפרק ({SAMPLE_EXAM_SIZE} שאלות)
+                  מבחן על הפרק ({chapterExamSize(activeChapter.id)} שאלות)
                 </button>
               </div>
 
