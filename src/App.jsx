@@ -300,6 +300,35 @@ export default function MDAQuizApp() {
     } else beginQuiz(shuffle(pool));
   }, [lastQuizScope]);
 
+  const reportQuestion = useCallback((q) => {
+    posthog.capture("question_reported", {
+      question_id: q.id,
+      source: q.source,
+      topic: q.topic,
+    });
+    const subject = `דיווח על שאלה #${q.id}`;
+    const correctOption = q.options[q.correct];
+    const body = [
+      `מספר שאלה: ${q.id}`,
+      `פרק: ${q.source}`,
+      `נושא: ${q.topic}`,
+      ``,
+      `שאלה: ${q.question}`,
+      ``,
+      `תשובות:`,
+      ...q.options.map((opt, i) => `${["א", "ב", "ג", "ד"][i]}. ${opt}${i === q.correct ? "  ← מסומנת כנכונה" : ""}`),
+      ``,
+      `תשובה נכונה לפי המערכת: ${correctOption}`,
+      ``,
+      `הסבר: ${q.explanation || "(אין)"}`,
+      ``,
+      `--- הוסף כאן את הבעיה / התיקון המוצע ---`,
+      ``,
+    ].join("\n");
+    const url = `mailto:tomer.levy9@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(url, "_blank");
+  }, []);
+
   const handleSelect = (idx) => {
     if (answered) return;
     setSelected(idx);
@@ -1352,6 +1381,23 @@ export default function MDAQuizApp() {
           box-shadow: 0 6px 20px rgba(220,38,38,0.3);
         }
 
+        .report-link {
+          display: block;
+          margin: 12px auto 0;
+          padding: 6px 12px;
+          background: transparent;
+          border: none;
+          color: rgba(255,255,255,0.4);
+          font-family: 'Heebo', sans-serif;
+          font-size: 12px;
+          cursor: pointer;
+          transition: color 0.2s;
+        }
+
+        .report-link:hover {
+          color: rgba(255,255,255,0.7);
+        }
+
         /* RESULTS */
         .results-card {
           background: linear-gradient(145deg, rgba(30,35,55,0.95), rgba(20,24,40,0.98));
@@ -1879,6 +1925,12 @@ export default function MDAQuizApp() {
                 {answered && (
                   <button className="next-btn" onClick={nextQuestion}>
                     {currentIdx + 1 >= quizQuestions.length ? "סיום וצפייה בתוצאות" : "שאלה הבאה ←"}
+                  </button>
+                )}
+
+                {answered && (
+                  <button className="report-link" onClick={() => reportQuestion(currentQ)}>
+                    🚩 דווח על שאלה/תשובה שגויה
                   </button>
                 )}
               </div>
